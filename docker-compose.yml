@@ -6,7 +6,7 @@ services:
     container_name: oracle-a1-web
     restart: unless-stopped
     ports:
-      - "8000:8000"
+      - "${PORT:-8000}:8000"
     environment:
       - PROJECT_ROOT=/app
     volumes:
