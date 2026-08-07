@@ -5,3 +5,8 @@ data/
 ssh/authorized_keys
 *.pem
 *.key
+
+# Node & Build artifacts
+node_modules/
+dist/
+backend/static/
