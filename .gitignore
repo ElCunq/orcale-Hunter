@@ -6,7 +6,9 @@ ssh/authorized_keys
 *.pem
 *.key
 
-# Node & Build artifacts
+# Python & Node artifacts
+__pycache__/
+*.pyc
 node_modules/
 dist/
 backend/static/
