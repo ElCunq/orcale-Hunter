@@ -30,9 +30,16 @@ telegram() {
     fi
 }
 
-# 3. Resolve Compartment ID
+# 3. Verify OCI Config exists
+if [ ! -f "/oracle/.oci/config" ]; then
+    echo "[INFO] OCI konfigürasyon dosyası (/oracle/.oci/config) henüz bulunamadı."
+    echo "[INFO] Lütfen Web Dashboard üzerinden OCI API ve Telegram bilgilerinizi kaydedip servisi başlatın."
+    sleep 30
+    exit 0
+fi
+
 if [ -z "$OCI_COMPARTMENT_ID" ]; then
-    OCI_COMPARTMENT_ID=$(grep -E '^tenancy=' /oracle/.oci/config | head -n1 | cut -d'=' -f2 | tr -d ' \r')
+    OCI_COMPARTMENT_ID=$(grep -E '^tenancy=' /oracle/.oci/config | head -n1 | cut -d'=' -f2 | tr -d ' \r' || true)
 fi
 
 if [ -z "$OCI_COMPARTMENT_ID" ]; then

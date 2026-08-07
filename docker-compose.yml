@@ -19,6 +19,8 @@ services:
     image: ghcr.io/oracle/oci-cli:latest
     container_name: oracle-a1-hunter
     restart: unless-stopped
+    depends_on:
+      - web
     volumes:
       - ./oci:/oracle/.oci
       - ./data:/data
