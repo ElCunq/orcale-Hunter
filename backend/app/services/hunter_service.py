@@ -60,8 +60,11 @@ def get_container_status() -> Dict[str, Any]:
             "success_marker": is_success_marker_present()
         }
 
+from app.services.config_service import ensure_dirs
+
 def start_hunter() -> Dict[str, Any]:
     try:
+        ensure_dirs()
         # Run docker compose up -d hunter
         res = subprocess.run(
             ["docker", "compose", "up", "-d", "hunter"],

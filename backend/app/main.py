@@ -6,8 +6,13 @@ from fastapi.staticfiles import StaticFiles
 from fastapi.responses import FileResponse
 
 from app.api.routes import router as api_router
+from app.services.config_service import ensure_dirs
 
 app = FastAPI(title="Oracle A1 Hunter Web Manager", version="1.0.0")
+
+@app.on_event("startup")
+def on_startup():
+    ensure_dirs()
 
 app.add_middleware(
     CORSMiddleware,

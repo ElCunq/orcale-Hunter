@@ -18,10 +18,12 @@ RUN mkdir -p /usr/local/lib/docker/cli-plugins && \
     curl -fsSL https://github.com/docker/compose/releases/download/v2.27.0/docker-compose-linux-x86_64 -o /usr/local/lib/docker/cli-plugins/docker-compose && \
     chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
-COPY requirements.txt .
+COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY . .
+COPY backend/ .
+COPY hunter.sh /app/hunter.sh
+RUN chmod +x /app/hunter.sh
 
 EXPOSE 8000
 

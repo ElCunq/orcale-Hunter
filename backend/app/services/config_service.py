@@ -16,7 +16,15 @@ SSH_KEYS_FILE = SSH_DIR / "authorized_keys"
 def ensure_dirs():
     OCI_DIR.mkdir(parents=True, exist_ok=True)
     SSH_DIR.mkdir(parents=True, exist_ok=True)
-    (PROJECT_ROOT / "data").mkdir(parents=True, exist_ok=True)
+    data_dir = PROJECT_ROOT / "data"
+    data_dir.mkdir(parents=True, exist_ok=True)
+
+    src_script = PROJECT_ROOT / "hunter.sh"
+    target_script = data_dir / "hunter.sh"
+    if src_script.exists() and src_script.is_file():
+        import shutil
+        shutil.copy2(src_script, target_script)
+        target_script.chmod(0o755)
 
 def read_env_file() -> Dict[str, str]:
     target_env = ENV_FILE if ENV_FILE.exists() else (LEGACY_ENV_FILE if LEGACY_ENV_FILE.exists() and not LEGACY_ENV_FILE.is_dir() else None)

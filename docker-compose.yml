@@ -1,8 +1,8 @@
 services:
   web:
     build:
-      context: ./backend
-      dockerfile: Dockerfile
+      context: .
+      dockerfile: ./backend/Dockerfile
     container_name: oracle-a1-web
     restart: unless-stopped
     ports:
@@ -13,7 +13,6 @@ services:
       - ./oci:/app/oci
       - ./data:/app/data
       - ./ssh:/app/ssh
-      - ./hunter.sh:/app/hunter.sh
       - /var/run/docker.sock:/var/run/docker.sock
 
   hunter:
@@ -24,7 +23,6 @@ services:
       - ./oci:/oracle/.oci
       - ./data:/data
       - ./ssh:/ssh
-      - ./hunter.sh:/hunter.sh
     entrypoint:
       - /bin/bash
-      - /hunter.sh
+      - /data/hunter.sh
