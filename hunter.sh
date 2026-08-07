@@ -9,6 +9,17 @@ if [ -f "$SUCCESS_MARKER" ]; then
     exit 0
 fi
 
+# Load environment variables from persistent storage
+if [ -f "/data/.env" ]; then
+    set -a
+    source /data/.env
+    set +a
+elif [ -f "/.env" ] && [ ! -d "/.env" ]; then
+    set -a
+    source /.env
+    set +a
+fi
+
 # 2. Telegram notification helper
 telegram() {
     local msg="$1"

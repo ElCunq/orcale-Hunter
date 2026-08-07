@@ -13,7 +13,6 @@ services:
       - ./oci:/app/oci
       - ./data:/app/data
       - ./ssh:/app/ssh
-      - ./.env:/app/.env
       - ./hunter.sh:/app/hunter.sh
       - /var/run/docker.sock:/var/run/docker.sock
 
@@ -21,8 +20,6 @@ services:
     image: ghcr.io/oracle/oci-cli:latest
     container_name: oracle-a1-hunter
     restart: unless-stopped
-    env_file:
-      - .env
     volumes:
       - ./oci:/oracle/.oci
       - ./data:/data

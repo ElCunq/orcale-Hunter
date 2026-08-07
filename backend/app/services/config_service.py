@@ -5,7 +5,8 @@ from typing import Dict, Any, Optional
 
 PROJECT_ROOT = Path(os.getenv("PROJECT_ROOT", Path(__file__).resolve().parent.parent.parent.parent))
 
-ENV_FILE = PROJECT_ROOT / ".env"
+ENV_FILE = PROJECT_ROOT / "data" / ".env"
+LEGACY_ENV_FILE = PROJECT_ROOT / ".env"
 OCI_DIR = PROJECT_ROOT / "oci"
 OCI_CONFIG_FILE = OCI_DIR / "config"
 OCI_KEY_FILE = OCI_DIR / "private-key.pem"
@@ -18,10 +19,11 @@ def ensure_dirs():
     (PROJECT_ROOT / "data").mkdir(parents=True, exist_ok=True)
 
 def read_env_file() -> Dict[str, str]:
-    if not ENV_FILE.exists():
+    target_env = ENV_FILE if ENV_FILE.exists() else (LEGACY_ENV_FILE if LEGACY_ENV_FILE.exists() and not LEGACY_ENV_FILE.is_dir() else None)
+    if not target_env:
         return {}
     env_vars = {}
-    with open(ENV_FILE, "r", encoding="utf-8") as f:
+    with open(target_env, "r", encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line and not line.startswith("#") and "=" in line:
