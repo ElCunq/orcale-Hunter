@@ -48,13 +48,13 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({ config, onChange
 
         <div className="md:col-span-2">
           <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
-            <ImageIcon className="w-3.5 h-3.5 text-purple-400" /> Image OCID (Opsiyonel - Boş kalırsa Canonical Ubuntu Minimal aarch64 otomatik seçilir)
+            <ImageIcon className="w-3.5 h-3.5 text-purple-400" /> Image OCID (Gerekli - Region'a özel Canonical Ubuntu Minimal aarch64 Image OCID'si)
           </label>
           <input
             type="text"
             value={config.oci_image_id || ''}
             onChange={(e) => onChange('oci_image_id', e.target.value)}
-            placeholder="ocid1.image.oc1.eu-frankfurt-1.aaaaaaa... (Otomatik bulma için boş bırakın)"
+            placeholder="ocid1.image.oc1.eu-frankfurt-1.aaaaaaa..."
             className="w-full glass-input rounded-xl px-4 py-2.5 text-xs font-mono"
           />
         </div>

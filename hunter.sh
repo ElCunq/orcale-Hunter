@@ -64,31 +64,12 @@ if [ "$EXISTING_COUNT" -gt 0 ]; then
     exit 0
 fi
 
-# 6. Resolve Image ID if not provided
+# 6. Resolve Image ID
 IMAGE_ID="$OCI_IMAGE_ID"
-if [ -z "$IMAGE_ID" ]; then
-    echo "[INFO] OCI_IMAGE_ID not set. Querying Canonical Ubuntu Minimal (aarch64) image..."
-    IMAGE_ID=$(oci compute image list \
-        --compartment-id "$OCI_COMPARTMENT_ID" \
-        --operating-system "Canonical Ubuntu" \
-        --shape "VM.Standard.A1.Flex" \
-        --query "data[?contains(\"operating-system-version\", 'Minimal')].id | [0]" \
-        --raw-output 2>/dev/null || true)
-
-    if [ -z "$IMAGE_ID" ] || [ "$IMAGE_ID" = "null" ]; then
-        echo "[INFO] Minimal Ubuntu image not found, falling back to standard Ubuntu aarch64 image..."
-        IMAGE_ID=$(oci compute image list \
-            --compartment-id "$OCI_COMPARTMENT_ID" \
-            --operating-system "Canonical Ubuntu" \
-            --shape "VM.Standard.A1.Flex" \
-            --query "data[0].id" \
-            --raw-output 2>/dev/null || true)
-    fi
-fi
 
 if [ -z "$IMAGE_ID" ] || [ "$IMAGE_ID" = "null" ]; then
-    echo "[ERROR] Could not resolve Ubuntu ARM image ID automatically!"
-    telegram "❌ Oracle A1 Hunter Hata: Ubuntu ARM image ID otomatik tespit edilemedi. Lütfen .env içinde OCI_IMAGE_ID belirtin."
+    echo "[ERROR] OCI_IMAGE_ID tanımlanmamış."
+    telegram "❌ Oracle A1 Hunter Hata: OCI_IMAGE_ID eksik! Lütfen .env dosyasında OCI_IMAGE_ID değerini tanımlayın."
     exit 1
 fi
 
