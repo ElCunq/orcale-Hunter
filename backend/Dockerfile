@@ -32,6 +32,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
 COPY --from=frontend-builder /backend/static ./static
+COPY docker-compose.yml /app/docker-compose.yml
 COPY hunter.sh /app/hunter.sh
 RUN chmod +x /app/hunter.sh
 

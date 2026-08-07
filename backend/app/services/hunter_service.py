@@ -8,6 +8,16 @@ DATA_DIR = PROJECT_ROOT / "data"
 SUCCESS_MARKER = DATA_DIR / "success"
 LOG_FILE = DATA_DIR / "hunter.log"
 
+def get_compose_cmd() -> List[str]:
+    compose_file = PROJECT_ROOT / "docker-compose.yml"
+    if not compose_file.exists():
+        alt = Path("/app/docker-compose.yml")
+        if alt.exists():
+            compose_file = alt
+    if compose_file.exists():
+        return ["docker", "compose", "-f", str(compose_file)]
+    return ["docker", "compose"]
+
 def is_success_marker_present() -> bool:
     return SUCCESS_MARKER.exists()
 
@@ -20,8 +30,9 @@ def clear_success_marker() -> bool:
 def get_container_status() -> Dict[str, Any]:
     # Check via docker compose ps or docker ps
     try:
+        cmd = get_compose_cmd() + ["ps", "hunter", "--format", "json"]
         res = subprocess.run(
-            ["docker", "compose", "ps", "hunter", "--format", "json"],
+            cmd,
             cwd=str(PROJECT_ROOT),
             capture_output=True,
             text=True,
@@ -35,7 +46,7 @@ def get_container_status() -> Dict[str, Any]:
                 "detail": output,
                 "success_marker": is_success_marker_present()
             }
-    except Exception as e:
+    except Exception:
         pass
 
     # Fallback to docker ps filter by container name oracle-a1-hunter
@@ -65,9 +76,9 @@ from app.services.config_service import ensure_dirs
 def start_hunter() -> Dict[str, Any]:
     try:
         ensure_dirs()
-        # Run docker compose up -d hunter
+        cmd = get_compose_cmd() + ["up", "-d", "hunter"]
         res = subprocess.run(
-            ["docker", "compose", "up", "-d", "hunter"],
+            cmd,
             cwd=str(PROJECT_ROOT),
             capture_output=True,
             text=True,
@@ -82,8 +93,9 @@ def start_hunter() -> Dict[str, Any]:
 
 def stop_hunter() -> Dict[str, Any]:
     try:
+        cmd = get_compose_cmd() + ["stop", "hunter"]
         res = subprocess.run(
-            ["docker", "compose", "stop", "hunter"],
+            cmd,
             cwd=str(PROJECT_ROOT),
             capture_output=True,
             text=True,
@@ -99,8 +111,9 @@ def stop_hunter() -> Dict[str, Any]:
 def get_recent_logs(lines: int = 100) -> List[str]:
     # Try docker compose logs first
     try:
+        cmd = get_compose_cmd() + ["logs", "--tail", str(lines), "hunter"]
         res = subprocess.run(
-            ["docker", "compose", "logs", "--tail", str(lines), "hunter"],
+            cmd,
             cwd=str(PROJECT_ROOT),
             capture_output=True,
             text=True,
