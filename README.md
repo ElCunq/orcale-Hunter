@@ -6,7 +6,7 @@ Docker Compose tabanlı Oracle Cloud Infrastructure (OCI) `VM.Standard.A1.Flex` 
 
 ```text
 /home/cunq/Desktop/Projects/oracle-a1-hunter/
-├── compose.yaml          # Docker Compose servisi
+├── docker-compose.yml    # Docker Compose servisi
 ├── hunter.sh             # OCI kapasite arama ve instance oluşturma scripti
 ├── .env                  # Telegram & OCI ortam değişkenleri
 ├── .env.example          # Örnek konfigürasyon dosyası
