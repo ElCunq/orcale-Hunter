@@ -1,3 +1,12 @@
+# Stage 1: Build React Frontend UI
+FROM node:20-alpine AS frontend-builder
+WORKDIR /frontend
+COPY frontend/package.json frontend/pnpm-lock.yaml* ./
+RUN npm install -g pnpm && pnpm install
+COPY frontend/ ./
+RUN pnpm build
+
+# Stage 2: Python FastAPI Backend
 FROM python:3.11-slim
 
 WORKDIR /app
@@ -22,6 +31,7 @@ COPY backend/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY backend/ .
+COPY --from=frontend-builder /backend/static ./static
 COPY hunter.sh /app/hunter.sh
 RUN chmod +x /app/hunter.sh
 
