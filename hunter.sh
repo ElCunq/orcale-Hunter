@@ -39,22 +39,30 @@ telegram() {
     fi
 }
 
-# 3. Verify OCI Config exists
-if [ ! -f "/oracle/.oci/config" ]; then
-    echo "[INFO] OCI konfigürasyon dosyası (/oracle/.oci/config) henüz bulunamadı."
-    echo "[INFO] Lütfen Web Dashboard üzerinden OCI API ve Telegram bilgilerinizi kaydedip servisi başlatın."
+# 3. Verify OCI Config and essential fields exist
+if [ ! -f "/oracle/.oci/config" ] || [ ! -f "/oracle/.oci/private-key.pem" ]; then
+    echo "[INFO] OCI konfigürasyon dosyaları (/oracle/.oci/config veya private-key.pem) henüz bulunamadı."
+    echo "[INFO] Lütfen Web Dashboard üzerinden OCI API ve Telegram bilgilerinizi kaydedin."
     sleep 30
     exit 0
 fi
 
 if [ -z "$OCI_COMPARTMENT_ID" ]; then
-    OCI_COMPARTMENT_ID=$(grep -E '^tenancy=' /oracle/.oci/config | head -n1 | cut -d'=' -f2 | tr -d ' \r' || true)
+    OCI_COMPARTMENT_ID=$(grep -E '^tenancy=' /oracle/.oci/config | head -n1 | cut -d'=' -f2 | tr -d ' "\r' || true)
 fi
 
-if [ -z "$OCI_COMPARTMENT_ID" ]; then
-    echo "[ERROR] OCI_COMPARTMENT_ID is missing and could not be parsed from /oracle/.oci/config!"
-    telegram "❌ Oracle A1 Hunter Hata: OCI_COMPARTMENT_ID tanımlanmamış ve config dosyasından okunamadı."
-    exit 1
+if [ -z "$OCI_COMPARTMENT_ID" ] || [ "$OCI_COMPARTMENT_ID" = "null" ]; then
+    echo "[INFO] OCI_COMPARTMENT_ID (Tenancy OCID) henüz tanımlanmamış."
+    echo "[INFO] Lütfen Web Dashboard üzerinden Tenancy / Compartment OCID bilginizi kaydedin."
+    sleep 30
+    exit 0
+fi
+
+if [ -z "$OCI_SUBNET_ID" ] || [ "$OCI_SUBNET_ID" = "null" ]; then
+    echo "[INFO] OCI_SUBNET_ID henüz tanımlanmamış."
+    echo "[INFO] Lütfen Web Dashboard üzerinden Subnet OCID bilginizi kaydedin."
+    sleep 30
+    exit 0
 fi
 
 echo "[INFO] Compartment ID: $OCI_COMPARTMENT_ID"

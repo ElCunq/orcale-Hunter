@@ -139,11 +139,12 @@ def get_full_config() -> Dict[str, Any]:
     }
 
 def save_full_config(data: Dict[str, Any]):
+    compartment_id = data.get("oci_compartment_id", "").strip() or data.get("oci_tenancy", "").strip()
     # Save .env
     env_data = {
         "TELEGRAM_BOT_TOKEN": data.get("telegram_bot_token", ""),
         "TELEGRAM_CHAT_ID": data.get("telegram_chat_id", ""),
-        "OCI_COMPARTMENT_ID": data.get("oci_compartment_id", ""),
+        "OCI_COMPARTMENT_ID": compartment_id,
         "OCI_SUBNET_ID": data.get("oci_subnet_id", ""),
         "OCI_IMAGE_ID": data.get("oci_image_id", ""),
         "OCI_SSH_PUBLIC_KEY": data.get("ssh_public_key", ""),
