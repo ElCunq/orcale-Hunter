@@ -41,13 +41,15 @@ export const App: React.FC = () => {
   useEffect(() => {
     loadData();
     const statusInterval = setInterval(async () => {
+      // Sekme görünür durumda değilse arka planda gereksiz ağ isteği atma
+      if (document.hidden) return;
       try {
         const st = await fetchStatus();
         setStatusData(st);
       } catch (e) {
         // ignore
       }
-    }, 5000);
+    }, 10000); // 10 saniyede bir canlı durum güncellemesi
     return () => clearInterval(statusInterval);
   }, []);
 
