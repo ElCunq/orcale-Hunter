@@ -41,16 +41,20 @@ def read_env_file() -> Dict[str, str]:
 
 def write_env_file(data: Dict[str, str]):
     ensure_dirs()
+    def quote_val(val: str) -> str:
+        clean = str(val or "").strip().replace('"', '\\"').replace('\n', ' ')
+        return f'"{clean}"'
+
     lines = [
         "# Telegram Notifications",
-        f"TELEGRAM_BOT_TOKEN={data.get('TELEGRAM_BOT_TOKEN', '')}",
-        f"TELEGRAM_CHAT_ID={data.get('TELEGRAM_CHAT_ID', '')}",
+        f"TELEGRAM_BOT_TOKEN={quote_val(data.get('TELEGRAM_BOT_TOKEN', ''))}",
+        f"TELEGRAM_CHAT_ID={quote_val(data.get('TELEGRAM_CHAT_ID', ''))}",
         "",
         "# Oracle Cloud Infrastructure Parameters",
-        f"OCI_COMPARTMENT_ID={data.get('OCI_COMPARTMENT_ID', '')}",
-        f"OCI_SUBNET_ID={data.get('OCI_SUBNET_ID', '')}",
-        f"OCI_IMAGE_ID={data.get('OCI_IMAGE_ID', '')}",
-        f"OCI_SSH_PUBLIC_KEY={data.get('OCI_SSH_PUBLIC_KEY', '')}",
+        f"OCI_COMPARTMENT_ID={quote_val(data.get('OCI_COMPARTMENT_ID', ''))}",
+        f"OCI_SUBNET_ID={quote_val(data.get('OCI_SUBNET_ID', ''))}",
+        f"OCI_IMAGE_ID={quote_val(data.get('OCI_IMAGE_ID', ''))}",
+        f"OCI_SSH_PUBLIC_KEY={quote_val(data.get('OCI_SSH_PUBLIC_KEY', ''))}",
     ]
     with open(ENV_FILE, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")

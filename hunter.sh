@@ -9,16 +9,25 @@ if [ -f "$SUCCESS_MARKER" ]; then
     exit 0
 fi
 
-# Load environment variables from persistent storage
-if [ -f "/data/.env" ]; then
-    set -a
-    source /data/.env
-    set +a
-elif [ -f "/.env" ] && [ ! -d "/.env" ]; then
-    set -a
-    source /.env
-    set +a
-fi
+# Robust environment variable loader (handles spaces and quotes safely)
+load_env() {
+    local env_file="$1"
+    if [ -f "$env_file" ] && [ ! -d "$env_file" ]; then
+        while IFS= read -r line || [ -n "$line" ]; do
+            line=$(echo "$line" | sed -e 's/^[[:space:]]*//' -e 's/[[:space:]]*$//')
+            [[ -z "$line" || "$line" =~ ^# ]] && continue
+            if [[ "$line" =~ ^([A-Za-z_][A-Za-z0-9_]*)=(.*)$ ]]; then
+                local var_name="${BASH_REMATCH[1]}"
+                local var_val="${BASH_REMATCH[2]}"
+                var_val=$(echo "$var_val" | sed -e 's/^"//' -e 's/"$//' -e "s/^'//" -e "s/'$//")
+                export "$var_name"="$var_val"
+            fi
+        done < "$env_file"
+    fi
+}
+
+load_env "/data/.env"
+load_env "/.env"
 
 # 2. Telegram notification helper
 telegram() {
