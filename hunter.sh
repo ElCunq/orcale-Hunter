@@ -110,20 +110,27 @@ fi
 
 echo "[INFO] Using Image ID: $IMAGE_ID"
 
+# Ensure readable permissions for container user
+chmod 644 /oracle/.oci/config /oracle/.oci/private-key.pem 2>/dev/null || true
+
 # 7. Fetch Availability Domains
 get_ads() {
-    local ads
-    ads=$(oci iam availability-domain list \
+    local raw_ads
+    raw_ads=$(oci iam availability-domain list \
         --compartment-id "$OCI_COMPARTMENT_ID" \
         --query "data[].name" \
-        --raw-output 2>/dev/null | tr -d '[]," ')
-    echo "$ads"
+        --raw-output 2>/dev/null || true)
+    
+    echo "$raw_ads" | grep -v 'ERROR:' | grep -v 'Abort' | grep -v 'Could not find' | tr -d '[],"' | xargs -n1 2>/dev/null || true
 }
 
 ADS=$(get_ads)
 
 if [ -z "$ADS" ]; then
-    echo "[WARN] Could not fetch AD list via OCI API. Falling back to default AD scan."
+    echo "[WARN] OCI API'den AD listesi çekilemedi (veya config erişilebilir değil)."
+    echo "[WARN] 15 saniye beklenip tekrar denenecek."
+    sleep 15
+    exit 0
 fi
 
 echo "[INFO] Target Availability Domains:"

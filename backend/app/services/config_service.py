@@ -15,9 +15,12 @@ SSH_KEYS_FILE = SSH_DIR / "authorized_keys"
 
 def ensure_dirs():
     OCI_DIR.mkdir(parents=True, exist_ok=True)
+    OCI_DIR.chmod(0o755)
     SSH_DIR.mkdir(parents=True, exist_ok=True)
+    SSH_DIR.chmod(0o755)
     data_dir = PROJECT_ROOT / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
+    data_dir.chmod(0o755)
 
     src_script = PROJECT_ROOT / "hunter.sh"
     target_script = data_dir / "hunter.sh"
@@ -25,6 +28,11 @@ def ensure_dirs():
         import shutil
         shutil.copy2(src_script, target_script)
         target_script.chmod(0o755)
+
+    if OCI_CONFIG_FILE.exists():
+        OCI_CONFIG_FILE.chmod(0o644)
+    if OCI_KEY_FILE.exists():
+        OCI_KEY_FILE.chmod(0o644)
 
 def read_env_file() -> Dict[str, str]:
     target_env = ENV_FILE if ENV_FILE.exists() else (LEGACY_ENV_FILE if LEGACY_ENV_FILE.exists() and not LEGACY_ENV_FILE.is_dir() else None)
@@ -58,6 +66,7 @@ def write_env_file(data: Dict[str, str]):
     ]
     with open(ENV_FILE, "w", encoding="utf-8") as f:
         f.write("\n".join(lines) + "\n")
+    ENV_FILE.chmod(0o644)
 
 def read_oci_config() -> Dict[str, str]:
     if not OCI_CONFIG_FILE.exists():
@@ -90,7 +99,7 @@ key_file={key_file_path}
 """
     with open(OCI_CONFIG_FILE, "w", encoding="utf-8") as f:
         f.write(content)
-    OCI_CONFIG_FILE.chmod(0o600)
+    OCI_CONFIG_FILE.chmod(0o644)
 
 def read_private_key() -> str:
     if not OCI_KEY_FILE.exists():
@@ -104,7 +113,7 @@ def write_private_key(key_content: str):
     if key_content:
         with open(OCI_KEY_FILE, "w", encoding="utf-8") as f:
             f.write(key_content + "\n")
-        OCI_KEY_FILE.chmod(0o600)
+        OCI_KEY_FILE.chmod(0o644)
 
 def read_ssh_key() -> str:
     if not SSH_KEYS_FILE.exists():
