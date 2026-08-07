@@ -3,7 +3,6 @@ services:
     build:
       context: .
       dockerfile: ./backend/Dockerfile
-    container_name: oracle-a1-web
     restart: unless-stopped
     expose:
       - "8000"
@@ -17,7 +16,6 @@ services:
 
   hunter:
     image: ghcr.io/oracle/oci-cli:latest
-    container_name: oracle-a1-hunter
     restart: unless-stopped
     depends_on:
       - web

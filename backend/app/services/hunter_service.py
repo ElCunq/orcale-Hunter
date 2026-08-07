@@ -40,8 +40,40 @@ def clear_success_marker() -> bool:
         return True
     return False
 
+def get_hunter_container_id() -> str:
+    try:
+        res = subprocess.run(
+            ["docker", "ps", "-a", "--filter", "label=com.docker.compose.service=hunter", "--format", "{{.ID}}"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        lines = [l.strip() for l in res.stdout.strip().split("\n") if l.strip()]
+        return lines[0] if lines else ""
+    except Exception:
+        return ""
+
 def get_container_status() -> Dict[str, Any]:
-    # Check via docker compose ps or docker ps
+    # Check via docker ps filtering by compose service label
+    try:
+        res = subprocess.run(
+            ["docker", "ps", "-a", "--filter", "label=com.docker.compose.service=hunter", "--format", "{{.Status}}"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        status_str = res.stdout.strip()
+        if status_str:
+            is_running = status_str.startswith("Up")
+            return {
+                "status": "RUNNING" if is_running else "STOPPED",
+                "detail": status_str,
+                "success_marker": is_success_marker_present()
+            }
+    except Exception:
+        pass
+
+    # Check via docker compose ps
     try:
         cmd = get_compose_cmd() + ["ps", "hunter", "--format", "json"]
         res = subprocess.run(
@@ -59,24 +91,6 @@ def get_container_status() -> Dict[str, Any]:
                 "detail": output,
                 "success_marker": is_success_marker_present()
             }
-    except Exception:
-        pass
-
-    # Fallback to docker ps filter by container name oracle-a1-hunter
-    try:
-        res = subprocess.run(
-            ["docker", "ps", "-a", "--filter", "name=oracle-a1-hunter", "--format", "{{.Status}}"],
-            capture_output=True,
-            text=True,
-            timeout=5
-        )
-        status_str = res.stdout.strip()
-        is_running = status_str.startswith("Up")
-        return {
-            "status": "RUNNING" if is_running else ("STOPPED" if status_str else "IDLE"),
-            "detail": status_str or "Container not created",
-            "success_marker": is_success_marker_present()
-        }
     except Exception as e:
         return {
             "status": "UNKNOWN",
@@ -84,12 +98,32 @@ def get_container_status() -> Dict[str, Any]:
             "success_marker": is_success_marker_present()
         }
 
+    return {
+        "status": "IDLE",
+        "detail": "Container not created",
+        "success_marker": is_success_marker_present()
+    }
+
 from app.services.config_service import ensure_dirs
 
 def start_hunter() -> Dict[str, Any]:
     try:
         ensure_dirs()
-        cmd = get_compose_cmd() + ["up", "-d", "hunter"]
+
+        # 1. Try starting existing container directly if found by label
+        cid = get_hunter_container_id()
+        if cid:
+            res_start = subprocess.run(
+                ["docker", "start", cid],
+                capture_output=True,
+                text=True,
+                timeout=10
+            )
+            if res_start.returncode == 0:
+                return {"success": True, "message": "Hunter container started successfully."}
+
+        # 2. Fallback to docker compose up -d --no-recreate hunter
+        cmd = get_compose_cmd() + ["up", "-d", "--no-recreate", "hunter"]
         res = subprocess.run(
             cmd,
             cwd=str(PROJECT_ROOT),
@@ -106,6 +140,17 @@ def start_hunter() -> Dict[str, Any]:
 
 def stop_hunter() -> Dict[str, Any]:
     try:
+        cid = get_hunter_container_id()
+        if cid:
+            res_stop = subprocess.run(
+                ["docker", "stop", cid],
+                capture_output=True,
+                text=True,
+                timeout=15
+            )
+            if res_stop.returncode == 0:
+                return {"success": True, "message": "Hunter container stopped successfully."}
+
         cmd = get_compose_cmd() + ["stop", "hunter"]
         res = subprocess.run(
             cmd,
@@ -122,7 +167,22 @@ def stop_hunter() -> Dict[str, Any]:
         return {"success": False, "message": str(e)}
 
 def get_recent_logs(lines: int = 100) -> List[str]:
-    # Try docker compose logs first
+    # Try docker logs by container ID first
+    cid = get_hunter_container_id()
+    if cid:
+        try:
+            res = subprocess.run(
+                ["docker", "logs", "--tail", str(lines), cid],
+                capture_output=True,
+                text=True,
+                timeout=5
+            )
+            if res.returncode == 0 and res.stdout.strip():
+                return res.stdout.strip().split("\n")
+        except Exception:
+            pass
+
+    # Try docker compose logs
     try:
         cmd = get_compose_cmd() + ["logs", "--tail", str(lines), "hunter"]
         res = subprocess.run(
