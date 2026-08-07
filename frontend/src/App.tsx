@@ -40,17 +40,30 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     loadData();
-    const statusInterval = setInterval(async () => {
-      // Sekme görünür durumda değilse arka planda gereksiz ağ isteği atma
-      if (document.hidden) return;
-      try {
-        const st = await fetchStatus();
-        setStatusData(st);
-      } catch (e) {
-        // ignore
-      }
-    }, 10000); // 10 saniyede bir canlı durum güncellemesi
-    return () => clearInterval(statusInterval);
+
+    // Zero-polling real-time WebSocket connection for status updates
+    let ws: WebSocket | null = null;
+    try {
+      const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
+      const wsUrl = `${protocol}//${window.location.host}/api/ws/status`;
+      ws = new WebSocket(wsUrl);
+      ws.onmessage = (event) => {
+        try {
+          const msg = JSON.parse(event.data);
+          if (msg.type === 'STATUS' && msg.data) {
+            setStatusData(msg.data);
+          }
+        } catch (e) {
+          // ignore
+        }
+      };
+    } catch (e) {
+      // ignore
+    }
+
+    return () => {
+      if (ws) ws.close();
+    };
   }, []);
 
   const handleConfigChange = (key: keyof ConfigData, value: string) => {

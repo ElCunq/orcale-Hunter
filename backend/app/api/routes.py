@@ -1,4 +1,5 @@
-from fastapi import APIRouter, HTTPException
+import asyncio
+from fastapi import APIRouter, HTTPException, WebSocket, WebSocketDisconnect
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
 
@@ -44,6 +45,20 @@ def get_status():
         "region": config_info.get("oci_region"),
         "subnet_id": config_info.get("oci_subnet_id")
     }
+
+@router.websocket("/ws/status")
+async def websocket_status(websocket: WebSocket):
+    await websocket.accept()
+    last_status = None
+    try:
+        while True:
+            st = get_status()
+            if st != last_status:
+                last_status = st
+                await websocket.send_json({"type": "STATUS", "data": st})
+            await asyncio.sleep(4)
+    except (WebSocketDisconnect, Exception):
+        pass
 
 @router.get("/config")
 def get_config():
