@@ -5,8 +5,8 @@ services:
       dockerfile: ./backend/Dockerfile
     container_name: oracle-a1-web
     restart: unless-stopped
-    ports:
-      - "${PORT:-8000}:8000"
+    expose:
+      - "8000"
     environment:
       - PROJECT_ROOT=/app
     volumes:
