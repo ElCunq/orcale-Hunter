@@ -14,9 +14,22 @@ def get_compose_cmd() -> List[str]:
         alt = Path("/app/docker-compose.yml")
         if alt.exists():
             compose_file = alt
+
+    env_file = DATA_DIR / ".env"
+    if not env_file.exists():
+        env_file = PROJECT_ROOT / ".env"
+    if not env_file.exists():
+        try:
+            env_file.write_text("# env\n")
+        except Exception:
+            pass
+
+    cmd = ["docker", "compose"]
+    if env_file.exists():
+        cmd.extend(["--env-file", str(env_file)])
     if compose_file.exists():
-        return ["docker", "compose", "-f", str(compose_file)]
-    return ["docker", "compose"]
+        cmd.extend(["-f", str(compose_file)])
+    return cmd
 
 def is_success_marker_present() -> bool:
     return SUCCESS_MARKER.exists()

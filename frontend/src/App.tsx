@@ -73,91 +73,91 @@ export const App: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-[#0b0f19] pb-24 text-gray-100 font-['Outfit',sans-serif]">
+    <div className="min-h-screen bg-[#09090b] text-zinc-100 font-['Inter',sans-serif] bg-grid-pattern pb-24">
       <Header onRefresh={loadData} isRefreshing={isRefreshing} />
 
       {/* Toast Notification */}
       {toast && (
-        <div className="fixed bottom-6 right-6 z-50 animate-bounce">
-          <div className={`flex items-center gap-3 px-5 py-3.5 rounded-2xl shadow-2xl border text-xs font-semibold backdrop-blur-md ${
+        <div className="fixed bottom-6 right-6 z-50 animate-in fade-in slide-in-from-bottom-5 duration-200">
+          <div className={`flex items-center gap-3 px-4 py-3 rounded-lg shadow-xl border text-xs font-medium backdrop-blur-md ${
             toast.isError
-              ? 'bg-red-950/90 text-red-200 border-red-800'
-              : 'bg-emerald-950/90 text-emerald-200 border-emerald-800'
+              ? 'bg-rose-950/90 text-rose-200 border-rose-800'
+              : 'bg-zinc-900/95 text-emerald-400 border-zinc-700'
           }`}>
-            {toast.isError ? <AlertCircle className="w-4 h-4 text-red-400" /> : <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
+            {toast.isError ? <AlertCircle className="w-4 h-4 text-rose-400" /> : <CheckCircle2 className="w-4 h-4 text-emerald-400" />}
             <span>{toast.message}</span>
-            <button onClick={() => setToast(null)} className="ml-2 hover:opacity-70">
+            <button onClick={() => setToast(null)} className="ml-2 text-zinc-400 hover:text-white">
               <X className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
       )}
 
-      <main className="max-w-7xl mx-auto px-6">
+      <main className="max-w-6xl mx-auto px-6">
         {/* Status Dashboard Banner */}
         <StatusCard statusData={statusData} onUpdate={loadData} onShowMessage={showToast} />
 
-        {/* Tab Navigation */}
-        <div className="flex flex-wrap items-center justify-between gap-4 mb-6 border-b border-gray-800/80 pb-4">
-          <div className="flex items-center gap-2 p-1.5 glass-card rounded-2xl">
+        {/* Shadcn Segmented Tab Navigation */}
+        <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
+          <div className="inline-flex items-center gap-1 p-1 bg-zinc-900 border border-zinc-800/80 rounded-lg shadow-inner">
             <button
               onClick={() => setActiveTab('oci')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition ${
+              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition ${
                 activeTab === 'oci'
-                  ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md'
-                  : 'text-gray-400 hover:text-white hover:bg-dark-800'
+                  ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/60'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <Key className="w-4 h-4" />
+              <Key className="w-3.5 h-3.5" />
               <span>OCI Key & Kimlik</span>
             </button>
 
             <button
               onClick={() => setActiveTab('telegram')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition ${
+              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition ${
                 activeTab === 'telegram'
-                  ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md'
-                  : 'text-gray-400 hover:text-white hover:bg-dark-800'
+                  ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/60'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <Bot className="w-4 h-4" />
+              <Bot className="w-3.5 h-3.5" />
               <span>Telegram Bot</span>
             </button>
 
             <button
               onClick={() => setActiveTab('resource')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition ${
+              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition ${
                 activeTab === 'resource'
-                  ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md'
-                  : 'text-gray-400 hover:text-white hover:bg-dark-800'
+                  ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/60'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <Server className="w-4 h-4" />
+              <Server className="w-3.5 h-3.5" />
               <span>Sunucu & Subnet</span>
             </button>
 
             <button
               onClick={() => setActiveTab('logs')}
-              className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold transition ${
+              className={`inline-flex items-center gap-2 px-3.5 py-1.5 rounded-md text-xs font-medium transition ${
                 activeTab === 'logs'
-                  ? 'bg-gradient-to-r from-pink-500 to-purple-600 text-white shadow-md'
-                  : 'text-gray-400 hover:text-white hover:bg-dark-800'
+                  ? 'bg-zinc-800 text-zinc-100 shadow-sm border border-zinc-700/60'
+                  : 'text-zinc-400 hover:text-zinc-200'
               }`}
             >
-              <TerminalIcon className="w-4 h-4" />
+              <TerminalIcon className="w-3.5 h-3.5" />
               <span>Konsol Logları</span>
             </button>
           </div>
 
           {hasUnsavedChanges && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-300 text-xs font-medium animate-pulse">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-md bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-medium animate-pulse">
               <span>Kaydedilmemiş değişiklikler var</span>
             </div>
           )}
         </div>
 
-        {/* Tab Content Panels */}
-        <div className="glass-card rounded-2xl p-6 border border-gray-800 mb-8">
+        {/* Tab Content Card Panel */}
+        <div className="shadcn-card p-6 mb-8 bg-zinc-900/60">
           {config && activeTab === 'oci' && (
             <OciConfig config={config} onChange={handleConfigChange} />
           )}
@@ -175,19 +175,19 @@ export const App: React.FC = () => {
           )}
         </div>
 
-        {/* Floating Save Action Bar (when editing settings) */}
+        {/* Floating Action Bar (Shadcn style footer bar when editing) */}
         {activeTab !== 'logs' && (
-          <div className="sticky bottom-6 glass-card rounded-2xl p-4 border border-gray-700/60 shadow-2xl flex items-center justify-between gap-4">
-            <div className="text-xs text-gray-400 font-medium">
-              Ayarları değiştirdikten sonra <span className="text-white font-semibold">"Ayarları Kaydet"</span> butonuna basarak kalıcı storage'a yazın.
+          <div className="sticky bottom-6 shadcn-card p-4 shadow-2xl flex items-center justify-between gap-4 bg-zinc-900/90 backdrop-blur-md border-zinc-800">
+            <div className="text-xs text-zinc-400 font-normal">
+              Değişiklikleri kaydetmek için <strong className="text-zinc-200 font-medium">"Ayarları Kaydet"</strong> butonuna basın.
             </div>
 
             <button
               onClick={handleSave}
               disabled={isSaving}
-              className="flex items-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold text-xs shadow-lg shadow-pink-500/25 transition active:scale-95 disabled:opacity-50"
+              className="inline-flex items-center gap-2 px-5 py-2 rounded-md bg-zinc-100 hover:bg-white text-zinc-900 font-medium text-xs shadow-sm transition active:scale-95 disabled:opacity-50"
             >
-              <Save className={`w-4 h-4 ${isSaving ? 'animate-spin' : ''}`} />
+              <Save className={`w-3.5 h-3.5 text-zinc-900 ${isSaving ? 'animate-spin' : ''}`} />
               <span>{isSaving ? 'Kaydediliyor...' : 'Ayarları Kaydet'}</span>
             </button>
           </div>

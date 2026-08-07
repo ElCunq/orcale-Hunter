@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Play, Square, CheckCircle, AlertTriangle, Activity, Wifi, Trash2, Send } from 'lucide-react';
+import { Play, Square, CheckCircle2, Activity, Wifi, RotateCcw } from 'lucide-react';
 import { StatusData, startHunter, stopHunter, resetMarker, testOciConnection } from '../api/client';
 
 interface StatusCardProps {
@@ -66,62 +66,61 @@ export const StatusCard: React.FC<StatusCardProps> = ({ statusData, onUpdate, on
   const hasMarker = statusData?.success_marker;
 
   return (
-    <div className="glass-card rounded-2xl p-6 mb-8 relative overflow-hidden border border-gray-800">
-      {/* Background ambient glow */}
-      <div className={`absolute -right-16 -top-16 w-48 h-48 rounded-full blur-3xl opacity-20 pointer-events-none ${
-        hasMarker ? 'bg-emerald-500' : isRunning ? 'bg-pink-500 animate-pulse' : 'bg-gray-500'
-      }`}></div>
-
+    <div className="shadcn-card p-6 mb-8 relative overflow-hidden bg-zinc-900/60 border-zinc-800">
       <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <div className="flex items-center gap-3">
-            <span className="text-xs uppercase tracking-wider text-gray-400 font-medium">Servis Durumu</span>
+        <div className="space-y-1.5">
+          <div className="flex items-center gap-2.5">
+            <span className="text-xs uppercase tracking-wider text-zinc-400 font-mono font-medium">Servis Durumu</span>
             {hasMarker ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 text-xs font-semibold border border-emerald-500/40">
-                <CheckCircle className="w-3.5 h-3.5" /> Sunucu Bulundu & Oluşturuldu
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium border border-emerald-500/20">
+                <CheckCircle2 className="w-3.5 h-3.5" /> Sunucu Bulundu & Oluşturuldu
               </span>
             ) : isRunning ? (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-pink-500/20 text-pink-300 text-xs font-semibold border border-pink-500/40 animate-pulse">
-                <Activity className="w-3.5 h-3.5 animate-spin" /> Arıyor (Kapasite Taranıyor...)
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium border border-emerald-500/20">
+                <span className="relative flex h-2 w-2">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+                </span>
+                Kapasite Taranıyor (Aktif)
               </span>
             ) : (
-              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-gray-700/50 text-gray-300 text-xs font-semibold border border-gray-600/40">
-                <Square className="w-3.5 h-3.5 text-gray-400" /> Durduruldu / Pasif
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-zinc-800/80 text-zinc-400 text-xs font-medium border border-zinc-700/60">
+                <Square className="w-3.5 h-3.5" /> Durduruldu / Pasif
               </span>
             )}
           </div>
 
-          <h2 className="text-2xl font-extrabold text-white flex items-center gap-2">
-            {isRunning ? 'Hunter Aktif Çalışıyor' : hasMarker ? 'İşlem Başarıyla Tamamlandı' : 'Hunter Servisi Hazır'}
+          <h2 className="text-xl font-semibold text-zinc-100 tracking-tight">
+            {isRunning ? 'Kapasite Avcısı Çalışıyor' : hasMarker ? 'İşlem Tamamlandı' : 'Hunter Hazır'}
           </h2>
 
-          <p className="text-xs text-gray-400 max-w-xl">
+          <p className="text-xs text-zinc-400 max-w-xl leading-relaxed">
             {hasMarker
-              ? 'Instance başarıyla açıldı. Tekrar tarama yapmak isterseniz aşağıdaki "Başarı Markerını Temizle" butonuna basın.'
+              ? 'Oracle Cloud A1 Instance başarıyla oluşturuldu. Tekrar tarama yapmak için Marker Temizle butonunu kullanabilirsiniz.'
               : isRunning
-              ? 'Docker container arka planda 10 dakikalık periyotlarla Availability Domain\'leri tarıyor.'
-              : 'Ayarlarınızı tamamladıktan sonra servisi başlatabilirsiniz.'}
+              ? 'Container arka planda periyodik olarak tüm Availability Domain\'leri tarıyor.'
+              : 'Konfigürasyonlarınızı kaydettikten sonra Hunter Başlat butonuna basarak taramayı başlatın.'}
           </p>
         </div>
 
         {/* Action Controls */}
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+        <div className="flex flex-wrap items-center gap-2.5 w-full md:w-auto">
           {isRunning ? (
             <button
               onClick={handleStop}
               disabled={loading === 'stop'}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl bg-red-600/90 hover:bg-red-500 text-white font-semibold text-sm shadow-lg shadow-red-900/30 transition active:scale-95 disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-md bg-rose-600 hover:bg-rose-500 text-white font-medium text-xs shadow-sm transition active:scale-95 disabled:opacity-50"
             >
-              <Square className="w-4 h-4 fill-current" />
-              {loading === 'stop' ? 'Durduruluyor...' : 'Durdur'}
+              <Square className="w-3.5 h-3.5 fill-current" />
+              {loading === 'stop' ? 'Durduruluyor...' : 'Hunter Durdur'}
             </button>
           ) : (
             <button
               onClick={handleStart}
               disabled={loading === 'start'}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-6 py-2.5 rounded-xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-semibold text-sm shadow-lg shadow-pink-500/25 transition active:scale-95 disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 px-5 py-2 rounded-md bg-zinc-100 hover:bg-white text-zinc-900 font-semibold text-xs shadow-sm transition active:scale-95 disabled:opacity-50"
             >
-              <Play className="w-4 h-4 fill-current" />
+              <Play className="w-3.5 h-3.5 fill-current text-zinc-900" />
               {loading === 'start' ? 'Başlatılıyor...' : 'Hunter Başlat'}
             </button>
           )}
@@ -130,9 +129,9 @@ export const StatusCard: React.FC<StatusCardProps> = ({ statusData, onUpdate, on
             <button
               onClick={handleResetMarker}
               disabled={loading === 'reset'}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 text-sm font-medium transition active:scale-95 disabled:opacity-50"
+              className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-md bg-amber-500/10 hover:bg-amber-500/20 text-amber-300 border border-amber-500/20 text-xs font-medium transition active:scale-95 disabled:opacity-50"
             >
-              <Trash2 className="w-4 h-4" />
+              <RotateCcw className="w-3.5 h-3.5" />
               {loading === 'reset' ? 'Siliniyor...' : 'Marker Temizle'}
             </button>
           )}
@@ -140,9 +139,9 @@ export const StatusCard: React.FC<StatusCardProps> = ({ statusData, onUpdate, on
           <button
             onClick={handleTestOci}
             disabled={loading === 'test-oci'}
-            className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-dark-800 hover:bg-dark-700 text-cyan-300 border border-cyan-500/30 text-sm font-medium transition active:scale-95 disabled:opacity-50"
+            className="inline-flex items-center justify-center gap-2 px-3.5 py-2 rounded-md bg-zinc-900 hover:bg-zinc-800 text-zinc-300 border border-zinc-800 text-xs font-medium transition active:scale-95 disabled:opacity-50"
           >
-            <Wifi className="w-4 h-4" />
+            <Wifi className="w-3.5 h-3.5 text-zinc-400" />
             {loading === 'test-oci' ? 'Test Ediliyor...' : 'OCI Test Et'}
           </button>
         </div>

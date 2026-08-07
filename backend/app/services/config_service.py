@@ -22,6 +22,23 @@ def ensure_dirs():
     data_dir.mkdir(parents=True, exist_ok=True)
     data_dir.chmod(0o755)
 
+    # Ensure root .env and data .env exist so Docker Compose never errors on missing env file
+    root_env = PROJECT_ROOT / ".env"
+    if not root_env.exists():
+        try:
+            root_env.write_text("# Oracle A1 Hunter Environment\n")
+            root_env.chmod(0o644)
+        except Exception:
+            pass
+
+    data_env = data_dir / ".env"
+    if not data_env.exists():
+        try:
+            data_env.write_text("# Oracle A1 Hunter Data Environment\n")
+            data_env.chmod(0o644)
+        except Exception:
+            pass
+
     src_script = PROJECT_ROOT / "hunter.sh"
     target_script = data_dir / "hunter.sh"
     if src_script.exists() and src_script.is_file():

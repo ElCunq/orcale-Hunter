@@ -1,5 +1,5 @@
 import React from 'react';
-import { Key, Globe, Shield, User, FileKey } from 'lucide-react';
+import { Key, Globe, Shield, User, FileKey, Upload } from 'lucide-react';
 import { ConfigData } from '../api/client';
 
 interface OciConfigProps {
@@ -24,91 +24,92 @@ export const OciConfig: React.FC<OciConfigProps> = ({ config, onChange }) => {
 
   return (
     <div className="space-y-6">
-      <div className="border-b border-gray-800 pb-4">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          <Key className="w-5 h-5 text-pink-400" /> OCI API Kimlik & Anahtar Bilgileri
+      <div className="border-b border-zinc-800 pb-3">
+        <h3 className="text-base font-semibold text-zinc-100 flex items-center gap-2">
+          <Key className="w-4 h-4 text-emerald-400" /> OCI API Kimlik & Anahtar Bilgileri
         </h3>
-        <p className="text-xs text-gray-400 mt-1">
-          Oracle Cloud kimlik bilgileriniz ve Private Key (`private-key.pem`) ayarları.
+        <p className="text-xs text-zinc-400 mt-1">
+          Oracle Cloud Console &gt; User Settings &gt; API Keys alanından alınan kimlik değerleri.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
-            <User className="w-3.5 h-3.5 text-pink-400" /> User OCID
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
+            <User className="w-3.5 h-3.5 text-zinc-400" /> User OCID <span className="text-rose-400">*</span>
           </label>
           <input
             type="text"
             value={config.oci_user || ''}
             onChange={(e) => onChange('oci_user', e.target.value)}
             placeholder="ocid1.user.oc1..aaaaaaa..."
-            className="w-full glass-input rounded-xl px-4 py-2.5 text-xs font-mono"
+            className="w-full shadcn-input font-mono"
           />
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
-            <Shield className="w-3.5 h-3.5 text-purple-400" /> Tenancy OCID
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
+            <Shield className="w-3.5 h-3.5 text-zinc-400" /> Tenancy OCID <span className="text-rose-400">*</span>
           </label>
           <input
             type="text"
             value={config.oci_tenancy || ''}
             onChange={(e) => onChange('oci_tenancy', e.target.value)}
             placeholder="ocid1.tenancy.oc1..aaaaaaa..."
-            className="w-full glass-input rounded-xl px-4 py-2.5 text-xs font-mono"
+            className="w-full shadcn-input font-mono"
           />
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
-            <Key className="w-3.5 h-3.5 text-cyan-400" /> API Key Fingerprint
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
+            <Key className="w-3.5 h-3.5 text-zinc-400" /> API Key Fingerprint <span className="text-rose-400">*</span>
           </label>
           <input
             type="text"
             value={config.oci_fingerprint || ''}
             onChange={(e) => onChange('oci_fingerprint', e.target.value)}
             placeholder="45:22:c4:8a:36:d3:..."
-            className="w-full glass-input rounded-xl px-4 py-2.5 text-xs font-mono"
+            className="w-full shadcn-input font-mono"
           />
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
-            <Globe className="w-3.5 h-3.5 text-emerald-400" /> OCI Region
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
+            <Globe className="w-3.5 h-3.5 text-zinc-400" /> OCI Region
           </label>
           <input
             type="text"
             value={config.oci_region || 'eu-frankfurt-1'}
             onChange={(e) => onChange('oci_region', e.target.value)}
             placeholder="eu-frankfurt-1"
-            className="w-full glass-input rounded-xl px-4 py-2.5 text-xs font-mono"
+            className="w-full shadcn-input font-mono"
           />
         </div>
       </div>
 
       {/* Private Key PEM Editor */}
-      <div className="pt-2">
-        <div className="flex items-center justify-between mb-2">
-          <label className="block text-xs font-semibold text-gray-300 flex items-center gap-1.5">
-            <FileKey className="w-4 h-4 text-amber-400" /> OCI Private Key (`private-key.pem`)
+      <div className="space-y-2 pt-2">
+        <div className="flex items-center justify-between">
+          <label className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
+            <FileKey className="w-3.5 h-3.5 text-zinc-400" /> OCI Private Key (`private-key.pem`) <span className="text-rose-400">*</span>
           </label>
-          <label className="cursor-pointer text-xs font-medium text-pink-400 hover:text-pink-300 flex items-center gap-1 bg-pink-500/10 hover:bg-pink-500/20 px-3 py-1 rounded-lg border border-pink-500/30 transition">
-            <span>.pem Dosyası Yükle</span>
+          <label className="cursor-pointer inline-flex items-center gap-1.5 text-xs font-medium text-zinc-300 hover:text-white bg-zinc-800 hover:bg-zinc-700 px-2.5 py-1 rounded-md border border-zinc-700 transition">
+            <Upload className="w-3.5 h-3.5" />
+            <span>.pem Yükle</span>
             <input type="file" accept=".pem,.key,.txt" onChange={handlePemFileUpload} className="hidden" />
           </label>
         </div>
 
         <textarea
-          rows={8}
+          rows={7}
           value={config.private_key || ''}
           onChange={(e) => onChange('private_key', e.target.value)}
-          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;...&#10;-----END RSA PRIVATE KEY-----"
-          className="w-full glass-input rounded-xl p-4 text-xs font-mono leading-relaxed resize-y focus:ring-1 focus:ring-pink-500"
+          placeholder="-----BEGIN RSA PRIVATE KEY-----&#10;MIIEowIBAAKCAQEA...&#10;-----END RSA PRIVATE KEY-----"
+          className="w-full shadcn-input font-mono text-xs leading-relaxed resize-y"
           spellCheck={false}
         />
-        <p className="text-[11px] text-gray-500 mt-1">
-          Bu anahtar sunucuda `./oci/private-key.pem` dosyasına güvenli şekilde kaydedilir ve container'a mount edilir.
+        <p className="text-[11px] text-zinc-400">
+          Bu anahtar güvenli şekilde saklanır ve OCI CLI container mount'una kopyalanır.
         </p>
       </div>
     </div>

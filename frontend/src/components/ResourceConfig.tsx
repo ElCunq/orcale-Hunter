@@ -10,69 +10,69 @@ interface ResourceConfigProps {
 export const ResourceConfig: React.FC<ResourceConfigProps> = ({ config, onChange }) => {
   return (
     <div className="space-y-6">
-      <div className="border-b border-gray-800 pb-4">
-        <h3 className="text-lg font-bold text-white flex items-center gap-2">
-          <Server className="w-5 h-5 text-emerald-400" /> Oracle Sunucu & Ağ Kaynak Ayarları
+      <div className="border-b border-zinc-800 pb-3">
+        <h3 className="text-base font-semibold text-zinc-100 flex items-center gap-2">
+          <Server className="w-4 h-4 text-emerald-400" /> Oracle Sunucu & Ağ Kaynak Ayarları
         </h3>
-        <p className="text-xs text-gray-400 mt-1">
-          Target Subnet, Compartment ID, Image OCID ve SSH Public Key bilgileri.
+        <p className="text-xs text-zinc-400 mt-1">
+          Oluşturulacak sunucunun ağ (Subnet), imaj (Image OCID) ve SSH erişim bilgileri.
         </p>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
-            <Network className="w-3.5 h-3.5 text-emerald-400" /> OCI Subnet OCID (Gerekli)
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
+            <Network className="w-3.5 h-3.5 text-zinc-400" /> OCI Subnet OCID <span className="text-rose-400">*</span>
           </label>
           <input
             type="text"
             value={config.oci_subnet_id || ''}
             onChange={(e) => onChange('oci_subnet_id', e.target.value)}
             placeholder="ocid1.subnet.oc1.eu-frankfurt-1.aaaaaaa..."
-            className="w-full glass-input rounded-xl px-4 py-2.5 text-xs font-mono"
+            className="w-full shadcn-input font-mono"
           />
         </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
-            <Server className="w-3.5 h-3.5 text-pink-400" /> Compartment OCID (Boşsa Tenancy kullanılır)
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
+            <Server className="w-3.5 h-3.5 text-zinc-400" /> Compartment OCID <span className="text-zinc-400 font-normal">(Opsiyonel - Boşsa Tenancy kullanılır)</span>
           </label>
           <input
             type="text"
             value={config.oci_compartment_id || ''}
             onChange={(e) => onChange('oci_compartment_id', e.target.value)}
             placeholder="ocid1.tenancy.oc1..aaaaaaa..."
-            className="w-full glass-input rounded-xl px-4 py-2.5 text-xs font-mono"
+            className="w-full shadcn-input font-mono"
           />
         </div>
 
-        <div className="md:col-span-2">
-          <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
-            <ImageIcon className="w-3.5 h-3.5 text-purple-400" /> Image OCID (Gerekli - Region'a özel Canonical Ubuntu Minimal aarch64 Image OCID'si)
+        <div className="md:col-span-2 space-y-1.5">
+          <label className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
+            <ImageIcon className="w-3.5 h-3.5 text-zinc-400" /> Image OCID (Canonical Ubuntu Minimal aarch64) <span className="text-rose-400">*</span>
           </label>
           <input
             type="text"
             value={config.oci_image_id || ''}
             onChange={(e) => onChange('oci_image_id', e.target.value)}
             placeholder="ocid1.image.oc1.eu-frankfurt-1.aaaaaaa..."
-            className="w-full glass-input rounded-xl px-4 py-2.5 text-xs font-mono"
+            className="w-full shadcn-input font-mono"
           />
         </div>
       </div>
 
-      <div className="pt-2">
-        <label className="block text-xs font-semibold text-gray-300 mb-1.5 flex items-center gap-1.5">
-          <KeyRound className="w-3.5 h-3.5 text-amber-400" /> SSH Authorized Key (Oluşturulacak sunucuya eklenecek SSH Public Key)
+      <div className="space-y-1.5 pt-1">
+        <label className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
+          <KeyRound className="w-3.5 h-3.5 text-zinc-400" /> SSH Authorized Public Key <span className="text-rose-400">*</span>
         </label>
         <textarea
           rows={3}
           value={config.ssh_public_key || ''}
           onChange={(e) => onChange('ssh_public_key', e.target.value)}
-          placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... elcunq@proton.me"
-          className="w-full glass-input rounded-xl p-3 text-xs font-mono resize-y"
+          placeholder="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI... user@email.com"
+          className="w-full shadcn-input font-mono text-xs resize-y"
         />
-        <p className="text-[11px] text-gray-500 mt-1">
-          Bu key `./ssh/authorized_keys` dosyasına ve container mount'una otomatik yazılır.
+        <p className="text-[11px] text-zinc-400">
+          Bu anahtar oluşturulan Ubuntu sunucusunun <code className="text-zinc-300 bg-zinc-900 px-1 py-0.5 rounded border border-zinc-800">authorized_keys</code> dosyasına otomatik yazılır.
         </p>
       </div>
     </div>

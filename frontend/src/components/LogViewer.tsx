@@ -61,13 +61,13 @@ export const LogViewer: React.FC<LogViewerProps> = ({ autoRefresh, onToggleAutoR
   };
 
   return (
-    <div className="glass-card rounded-2xl overflow-hidden border border-gray-800 flex flex-col h-[520px]">
+    <div className="shadcn-card rounded-lg overflow-hidden flex flex-col h-[520px] bg-zinc-950 border-zinc-800">
       {/* Header Bar */}
-      <div className="bg-dark-800/90 border-b border-gray-800 px-5 py-3.5 flex items-center justify-between">
-        <div className="flex items-center gap-2.5">
-          <Terminal className="w-4 h-4 text-pink-400" />
-          <h3 className="text-sm font-bold text-gray-200 font-mono">Hunter Canlı Konsol Logları</h3>
-          <span className="text-[10px] px-2 py-0.5 rounded bg-gray-800 text-gray-400 font-mono">
+      <div className="bg-zinc-900/90 border-b border-zinc-800 px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <Terminal className="w-4 h-4 text-emerald-400" />
+          <h3 className="text-xs font-mono font-medium text-zinc-200">Hunter Canlı Konsol Logları</h3>
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 font-mono">
             {logs.length} satır
           </span>
         </div>
@@ -75,31 +75,31 @@ export const LogViewer: React.FC<LogViewerProps> = ({ autoRefresh, onToggleAutoR
         <div className="flex items-center gap-2">
           <button
             onClick={onToggleAutoRefresh}
-            className={`px-2.5 py-1 rounded-lg text-xs font-mono flex items-center gap-1.5 transition ${
+            className={`px-2.5 py-1 rounded text-[11px] font-mono flex items-center gap-1.5 transition ${
               autoRefresh
-                ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/30'
-                : 'bg-dark-900 text-gray-400 border border-gray-700/50'
+                ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
             }`}
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${autoRefresh ? 'bg-emerald-400 animate-ping' : 'bg-gray-500'}`}></span>
+            <span className={`w-1.5 h-1.5 rounded-full ${autoRefresh ? 'bg-emerald-400 animate-ping' : 'bg-zinc-600'}`}></span>
             Otomatik Yenile (4s)
           </button>
 
           <button
             onClick={() => setAutoScroll(!autoScroll)}
-            className={`px-2.5 py-1 rounded-lg text-xs font-mono flex items-center gap-1 transition ${
+            className={`px-2.5 py-1 rounded text-[11px] font-mono flex items-center gap-1 transition ${
               autoScroll
-                ? 'bg-pink-500/20 text-pink-300 border border-pink-500/30'
-                : 'bg-dark-900 text-gray-400 border border-gray-700/50'
+                ? 'bg-zinc-800 text-zinc-200 border border-zinc-700'
+                : 'bg-zinc-900 text-zinc-400 border border-zinc-800'
             }`}
           >
             <ArrowDown className="w-3 h-3" />
-            Otomatik Kaydır
+            Kaydır
           </button>
 
           <button
             onClick={handleCopyLogs}
-            className="p-1.5 rounded-lg bg-dark-900 hover:bg-dark-700 text-gray-400 hover:text-white transition"
+            className="p-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition border border-zinc-800"
             title="Logları Kopyala"
           >
             {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
@@ -107,7 +107,7 @@ export const LogViewer: React.FC<LogViewerProps> = ({ autoRefresh, onToggleAutoR
 
           <button
             onClick={handleDownloadLogs}
-            className="p-1.5 rounded-lg bg-dark-900 hover:bg-dark-700 text-gray-400 hover:text-white transition"
+            className="p-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition border border-zinc-800"
             title="Log İndir"
           >
             <Download className="w-3.5 h-3.5" />
@@ -116,26 +116,26 @@ export const LogViewer: React.FC<LogViewerProps> = ({ autoRefresh, onToggleAutoR
           <button
             onClick={loadLogs}
             disabled={loading}
-            className="p-1.5 rounded-lg bg-dark-900 hover:bg-dark-700 text-gray-400 hover:text-white transition disabled:opacity-50"
+            className="p-1 rounded bg-zinc-900 hover:bg-zinc-800 text-zinc-400 hover:text-zinc-200 transition border border-zinc-800 disabled:opacity-50"
             title="Şimdi Yenile"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-pink-400' : ''}`} />
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-emerald-400' : ''}`} />
           </button>
         </div>
       </div>
 
       {/* Terminal Viewport */}
-      <div className="flex-1 p-4 bg-[#070a11] font-mono text-[11px] leading-relaxed overflow-y-auto selection:bg-pink-500 selection:text-white">
+      <div className="flex-1 p-4 bg-[#09090b] font-mono text-[11px] leading-relaxed overflow-y-auto selection:bg-zinc-800 selection:text-white">
         {logs.map((line, idx) => {
-          let lineColor = 'text-gray-300';
-          if (line.includes('[SUCCESS]') || line.includes('✅')) lineColor = 'text-emerald-400 font-bold';
-          else if (line.includes('[ERROR]') || line.includes('❌')) lineColor = 'text-red-400 font-semibold';
+          let lineColor = 'text-zinc-300';
+          if (line.includes('[SUCCESS]') || line.includes('✅')) lineColor = 'text-emerald-400 font-semibold';
+          else if (line.includes('[ERROR]') || line.includes('❌')) lineColor = 'text-rose-400 font-semibold';
           else if (line.includes('[WARN]')) lineColor = 'text-amber-300';
-          else if (line.includes('[INFO]')) lineColor = 'text-cyan-300';
+          else if (line.includes('[INFO]')) lineColor = 'text-sky-300';
 
           return (
             <div key={idx} className={`py-0.5 whitespace-pre-wrap break-all ${lineColor}`}>
-              <span className="text-gray-600 select-none mr-3 text-[10px]">{(idx + 1).toString().padStart(3, ' ')}</span>
+              <span className="text-zinc-600 select-none mr-3 text-[10px]">{(idx + 1).toString().padStart(3, ' ')}</span>
               {line}
             </div>
           );
