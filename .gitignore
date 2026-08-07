@@ -1,0 +1,7 @@
+# Environment & Secret files
+.env
+oci/
+data/
+ssh/authorized_keys
+*.pem
+*.key

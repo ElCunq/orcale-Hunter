@@ -1,0 +1,18 @@
+services:
+  hunter:
+    image: ghcr.io/oracle/oci-cli:latest
+    container_name: oracle-a1-hunter
+    restart: unless-stopped
+
+    env_file:
+      - .env
+
+    volumes:
+      - ./oci:/oracle/.oci
+      - ./data:/data
+      - ./ssh:/ssh
+      - ./hunter.sh:/hunter.sh
+
+    entrypoint:
+      - /bin/bash
+      - /hunter.sh
