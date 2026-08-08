@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 set -e
 
+export OCI_CLI_SUPPRESS_FILE_PERMISSIONS_WARNING=True
+
 SUCCESS_MARKER="/data/success"
 
 # 1. Success marker check
@@ -223,7 +225,7 @@ Hunter servisi tamamlandı ve durduruldu."
         fi
 
         # Check for Out of Capacity error
-        if echo "$LAUNCH_OUTPUT" | grep -q -iE "Out of host capacity|Out of capacity"; then
+        if echo "$LAUNCH_OUTPUT" | grep -q -iE "Out of host capacity|Out of capacity|OutOfCapacity"; then
             echo "[WARN] Capacity unavailable in $AD. Retrying next AD..."
             continue
         fi
@@ -233,6 +235,13 @@ Hunter servisi tamamlandı ve durduruldu."
             echo "[WARN] Rate limit (429 / TooManyRequests) encountered in $AD."
             HAD_RATE_LIMIT=true
             break
+        fi
+
+        # Check for Transient Network / Connection Timeouts
+        if echo "$LAUNCH_OUTPUT" | grep -q -iE "ConnectTimeout|connection timed out|timed out|ServiceUnavailable|500|502|503|504|Connection reset"; then
+            echo "[WARN] Temporary OCI network timeout on $AD. Sleeping 60s before retrying..."
+            sleep 60
+            continue
         fi
 
         # Fatal / Unexpected Error
