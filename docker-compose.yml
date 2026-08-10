@@ -23,7 +23,7 @@ services:
       - ./oci:/oracle/.oci
       - ./data:/data
       - ./ssh:/ssh
-      - ./hunter.sh:/hunter.sh:ro
     entrypoint:
       - /bin/bash
-      - /hunter.sh
+      - -c
+      - "until [ -f /data/hunter.sh ]; do echo 'Waiting for /data/hunter.sh...'; sleep 2; done; exec /bin/bash /data/hunter.sh"
