@@ -106,7 +106,7 @@ if [ "$EXISTING_COUNT" -gt 0 ]; then
     exit 0
 fi
 
-# 6. Resolve Image ID (Automatic discovery fallback)
+# 6. Resolve Image ID (Automatic discovery fallback with TIMECREATED DESC sort)
 IMAGE_ID="$OCI_IMAGE_ID"
 
 if [ -z "$IMAGE_ID" ] || [ "$IMAGE_ID" = "null" ]; then
@@ -115,6 +115,8 @@ if [ -z "$IMAGE_ID" ] || [ "$IMAGE_ID" = "null" ]; then
         --compartment-id "$OCI_COMPARTMENT_ID" \
         --operating-system "Canonical Ubuntu" \
         --shape "VM.Standard.A1.Flex" \
+        --sort-by TIMECREATED \
+        --sort-order DESC \
         --query "data[?contains(\"display-name\", 'aarch64')].id | [0]" \
         --raw-output 2>/dev/null || echo "")
 fi
@@ -131,7 +133,20 @@ echo "[INFO] Using Image ID: $IMAGE_ID"
 chmod 644 /oracle/.oci/config /oracle/.oci/private-key.pem 2>/dev/null || true
 
 # 7. Check Subnet Type (Regional vs AD-Specific)
-SUBNET_AD=$(oci network subnet get --subnet-id "$OCI_SUBNET_ID" --query 'data."availability-domain"' --raw-output 2>/dev/null || echo "")
+SUBNET_EXIT=0
+SUBNET_OUTPUT=$(oci network subnet get \
+    --subnet-id "$OCI_SUBNET_ID" \
+    --query 'data."availability-domain"' \
+    --raw-output 2>&1) || SUBNET_EXIT=$?
+
+if [ "$SUBNET_EXIT" -ne 0 ]; then
+    echo "[ERROR] Subnet bilgisi sorgulanamadı (OCID veya erişim hatası):"
+    echo "$SUBNET_OUTPUT"
+    telegram "❌ Oracle A1 Hunter Hata: OCI Subnet bilgisi sorgulanamadı. Lütfen Subnet OCID değerini kontrol edin."
+    exit 1
+fi
+
+SUBNET_AD="$SUBNET_OUTPUT"
 
 if [ -n "$SUBNET_AD" ] && [ "$SUBNET_AD" != "null" ]; then
     echo "[INFO] Subnet AD-specific ($SUBNET_AD). Sadece bu AD taranacak."
@@ -295,7 +310,7 @@ ${LAUNCH_OUTPUT}"
     else
         # Add random jitter (540s to 660s) to avoid exact 10-min pattern spikes
         JITTER=$(( 540 + RANDOM % 120 ))
-        echo "[INFO] All ADs checked, no capacity available. Sleeping $JITTER seconds..."
+        echo "[INFO] All ADs checked, no capacity available. Sleeping $JITTER seconds (~9-11 min, ±10% jitter)..."
         sleep $JITTER
     fi
 
