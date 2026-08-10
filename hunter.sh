@@ -169,7 +169,7 @@ else
             --query "data[].name" \
             --raw-output 2>/dev/null || true)
         
-        echo "$raw_ads" | grep -E '^[A-Za-z0-9_-]+:[A-Za-z0-9_-]+' | tr -d '[],"' | xargs -n1 2>/dev/null || true
+        echo "$raw_ads" | tr -d '[],"' | xargs -n1 2>/dev/null | grep -E ':[A-Za-z0-9_-]+-AD-' || true
     }
     ADS=$(get_ads)
 fi
