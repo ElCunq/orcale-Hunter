@@ -154,11 +154,12 @@ if [ "$SUBNET_EXIT" -ne 0 ]; then
     exit 1
 fi
 
-SUBNET_AD="$SUBNET_OUTPUT"
+# Filter and extract valid OCI AD string if subnet is AD-specific
+CLEAN_SUBNET_AD=$(echo "$SUBNET_OUTPUT" | grep -E '^[A-Za-z0-9_-]+:[A-Za-z0-9_-]+' || true)
 
-if [ -n "$SUBNET_AD" ] && [ "$SUBNET_AD" != "null" ]; then
-    echo "[INFO] Subnet AD-specific ($SUBNET_AD). Sadece bu AD taranacak."
-    ADS="$SUBNET_AD"
+if [ -n "$CLEAN_SUBNET_AD" ]; then
+    echo "[INFO] Subnet AD-specific ($CLEAN_SUBNET_AD). Sadece bu AD taranacak."
+    ADS="$CLEAN_SUBNET_AD"
 else
     echo "[INFO] Subnet Regional. Tüm Availability Domain'ler taranacak."
     get_ads() {
