@@ -31,9 +31,17 @@ load_env() {
 load_env "/data/.env"
 load_env "/.env"
 
-# Target CPU / Memory configuration (Default: 4 OCPU, 24 GB RAM)
+# Target CPU / Memory configuration & Strategy
+HUNTER_MODE="${HUNTER_MODE:-GRADUAL}" # GRADUAL or EXACT
 OCI_OCPUS="${OCI_OCPUS:-4}"
 OCI_MEMORY_GB="${OCI_MEMORY_GB:-24}"
+
+if [ "$HUNTER_MODE" = "EXACT" ]; then
+    TIER_SPECS=("${OCI_OCPUS}:${OCI_MEMORY_GB}")
+else
+    # Gradual Step-Down: 4C/24G jackpot -> 3C/18G -> 2C/12G
+    TIER_SPECS=("4:24" "3:18" "2:12")
+fi
 
 # 2. Telegram notification helper
 telegram() {
@@ -72,10 +80,10 @@ if [ -z "$OCI_SUBNET_ID" ] || [ "$OCI_SUBNET_ID" = "null" ]; then
 fi
 
 echo "[INFO] Compartment ID: $OCI_COMPARTMENT_ID"
-echo "[INFO] Target Spec: ${OCI_OCPUS} OCPU / ${OCI_MEMORY_GB} GB RAM"
+echo "[INFO] Hunter Mode: $HUNTER_MODE. Target Tiers: ${TIER_SPECS[*]}"
 
 # Send startup notification
-telegram "🚀 Oracle A1 Hunter servisi başlatıldı. Target: VM.Standard.A1.Flex (${OCI_OCPUS} OCPU, ${OCI_MEMORY_GB}GB RAM, 200GB Boot Disk)"
+telegram "🚀 Oracle A1 Hunter servisi başlatıldı. Strateji: ${HUNTER_MODE} (${TIER_SPECS[*]}, 200GB Boot Disk)"
 
 # 4. SSH Key setup
 AUTHORIZED_KEYS_PATH="/tmp/authorized_keys"
@@ -209,99 +217,104 @@ while true; do
     echo "[INFO] Round #$ROUND AD Queue Order: ${CURRENT_ADS[*]}"
 
     for AD in "${CURRENT_ADS[@]}"; do
-        echo "[INFO] Trying Availability Domain: $AD..."
+        for SPEC in "${TIER_SPECS[@]}"; do
+            TARGET_OCPU="${SPEC%:*}"
+            TARGET_RAM="${SPEC#*:}"
 
-        # Attempt to launch instance
-        LAUNCH_OUTPUT=$(oci compute instance launch \
-            --compartment-id "$OCI_COMPARTMENT_ID" \
-            --availability-domain "$AD" \
-            --subnet-id "$OCI_SUBNET_ID" \
-            --image-id "$IMAGE_ID" \
-            --shape "VM.Standard.A1.Flex" \
-            --shape-config "{\"ocpus\":${OCI_OCPUS},\"memoryInGBs\":${OCI_MEMORY_GB}}" \
-            --boot-volume-size-in-gbs 200 \
-            --assign-public-ip true \
-            --ssh-authorized-keys-file "$AUTHORIZED_KEYS_PATH" \
-            --display-name "hermes-vps" 2>&1) || LAUNCH_EXIT_CODE=$?
+            echo "[INFO] Trying AD: $AD [Spec: ${TARGET_OCPU} OCPU / ${TARGET_RAM} GB RAM]..."
 
-        # Success check
-        if echo "$LAUNCH_OUTPUT" | grep -q '"id": "ocid1.instance'; then
-            INSTANCE_OCID=$(echo "$LAUNCH_OUTPUT" | grep -o 'ocid1\.instance\.[^"]*' | head -n1)
-            echo "=========================================="
-            echo "[SUCCESS] Instance created successfully!"
-            echo "Instance OCID: $INSTANCE_OCID"
-            echo "=========================================="
+            # Attempt to launch instance
+            LAUNCH_OUTPUT=$(oci compute instance launch \
+                --compartment-id "$OCI_COMPARTMENT_ID" \
+                --availability-domain "$AD" \
+                --subnet-id "$OCI_SUBNET_ID" \
+                --image-id "$IMAGE_ID" \
+                --shape "VM.Standard.A1.Flex" \
+                --shape-config "{\"ocpus\":${TARGET_OCPU},\"memoryInGBs\":${TARGET_RAM}}" \
+                --boot-volume-size-in-gbs 200 \
+                --assign-public-ip true \
+                --ssh-authorized-keys-file "$AUTHORIZED_KEYS_PATH" \
+                --display-name "hermes-vps" 2>&1) || LAUNCH_EXIT_CODE=$?
 
-            echo "[INFO] Waiting for instance to reach RUNNING state..."
-            
-            # Poll until RUNNING
-            STATE=""
-            for i in $(seq 1 30); do
-                STATE=$(oci compute instance get --instance-id "$INSTANCE_OCID" --query 'data."lifecycle-state"' --raw-output 2>/dev/null || echo "")
-                echo "[INFO] Current state: $STATE"
-                if [ "$STATE" = "RUNNING" ]; then
-                    break
+            # Success check
+            if echo "$LAUNCH_OUTPUT" | grep -q '"id": "ocid1.instance'; then
+                INSTANCE_OCID=$(echo "$LAUNCH_OUTPUT" | grep -o 'ocid1\.instance\.[^"]*' | head -n1)
+                echo "=========================================="
+                echo "[SUCCESS] Instance created successfully!"
+                echo "Instance OCID: $INSTANCE_OCID (${TARGET_OCPU} OCPU / ${TARGET_RAM} GB RAM)"
+                echo "=========================================="
+
+                echo "[INFO] Waiting for instance to reach RUNNING state..."
+                
+                # Poll until RUNNING
+                STATE=""
+                for i in $(seq 1 30); do
+                    STATE=$(oci compute instance get --instance-id "$INSTANCE_OCID" --query 'data."lifecycle-state"' --raw-output 2>/dev/null || echo "")
+                    echo "[INFO] Current state: $STATE"
+                    if [ "$STATE" = "RUNNING" ]; then
+                        break
+                    fi
+                    sleep 10
+                done
+
+                # Get public IP address
+                VNIC_ID=$(oci compute instance list-vnics --instance-id "$INSTANCE_OCID" --query 'data[0].id' --raw-output 2>/dev/null || true)
+                PUBLIC_IP="Unknown"
+                if [ -n "$VNIC_ID" ] && [ "$VNIC_ID" != "null" ]; then
+                    PUBLIC_IP=$(oci network vnic get --vnic-id "$VNIC_ID" --query 'data."public-ip"' --raw-output 2>/dev/null || echo "Unknown")
                 fi
-                sleep 10
-            done
 
-            # Get public IP address
-            VNIC_ID=$(oci compute instance list-vnics --instance-id "$INSTANCE_OCID" --query 'data[0].id' --raw-output 2>/dev/null || true)
-            PUBLIC_IP="Unknown"
-            if [ -n "$VNIC_ID" ] && [ "$VNIC_ID" != "null" ]; then
-                PUBLIC_IP=$(oci network vnic get --vnic-id "$VNIC_ID" --query 'data."public-ip"' --raw-output 2>/dev/null || echo "Unknown")
-            fi
-
-            SUCCESS_MSG="✅ Oracle A1 Sunucu Başarıyla Oluşturuldu!
+                SUCCESS_MSG="✅ Oracle A1 Sunucu Başarıyla Oluşturuldu!
 
 Display Name: hermes-vps
 Shape: VM.Standard.A1.Flex
 Availability Domain: ${AD}
-OCPU: ${OCI_OCPUS}
-RAM: ${OCI_MEMORY_GB} GB
+OCPU: ${TARGET_OCPU}
+RAM: ${TARGET_RAM} GB
 Boot Volume: 200 GB
 Public IP: ${PUBLIC_IP}
 Instance OCID: ${INSTANCE_OCID}
 
-Hunter servisi tamamlandı ve durduruldu."
+Hunter servisi başarıyla tamamlandı ve durduruldu."
 
-            telegram "$SUCCESS_MSG"
-            echo "$SUCCESS_MSG"
+                telegram "$SUCCESS_MSG"
+                echo "$SUCCESS_MSG"
 
-            touch "$SUCCESS_MARKER"
-            exit 0
-        fi
+                touch "$SUCCESS_MARKER"
+                exit 0
+            fi
 
-        # Check for Out of Capacity error
-        if echo "$LAUNCH_OUTPUT" | grep -q -iE "Out of host capacity|Out of capacity|OutOfCapacity"; then
-            echo "[WARN] Capacity unavailable in $AD. Retrying next AD..."
-            continue
-        fi
+            # Check for Out of Capacity error
+            if echo "$LAUNCH_OUTPUT" | grep -q -iE "Out of host capacity|Out of capacity|OutOfCapacity"; then
+                echo "[WARN] Capacity unavailable for ${TARGET_OCPU}C / ${TARGET_RAM}G in $AD. Stepping down..."
+                continue
+            fi
 
-        # Check for Rate Limit (429 / TooManyRequests)
-        if echo "$LAUNCH_OUTPUT" | grep -q -iE "TooManyRequests|429"; then
-            echo "[WARN] Rate limit (429 / TooManyRequests) encountered in $AD."
-            HAD_RATE_LIMIT=true
-            break
-        fi
+            # Check for Rate Limit (429 / TooManyRequests)
+            if echo "$LAUNCH_OUTPUT" | grep -q -iE "TooManyRequests|429"; then
+                echo "[WARN] Rate limit (429 / TooManyRequests) encountered in $AD."
+                HAD_RATE_LIMIT=true
+                break 2
+            fi
 
-        # Check for Transient Network / Connection Timeouts
-        if echo "$LAUNCH_OUTPUT" | grep -q -iE "ConnectTimeout|connection timed out|timed out|ServiceUnavailable|500|502|503|504|Connection reset"; then
-            echo "[WARN] Temporary OCI network timeout on $AD. Sleeping 60s before retrying..."
-            sleep 60
-            continue
-        fi
+            # Check for Transient Network / Connection Timeouts
+            if echo "$LAUNCH_OUTPUT" | grep -q -iE "ConnectTimeout|connection timed out|timed out|ServiceUnavailable|500|502|503|504|Connection reset"; then
+                echo "[WARN] Temporary OCI network timeout on $AD. Sleeping 60s before retrying..."
+                sleep 60
+                continue 2
+            fi
 
-        # Fatal / Unexpected Error
-        echo "[ERROR] Launch failed with unexpected error on $AD:"
-        echo "$LAUNCH_OUTPUT"
-        
-        telegram "❌ Oracle A1 Hunter Beklenmeyen Hata!
+            # Fatal / Unexpected Error
+            echo "[ERROR] Launch failed with unexpected error on $AD:"
+            echo "$LAUNCH_OUTPUT"
+            
+            telegram "❌ Oracle A1 Hunter Beklenmeyen Hata!
 
 AD: ${AD}
 Hata Detayı:
 ${LAUNCH_OUTPUT}"
-        exit 1
+            exit 1
+        done
     done
 
     if [ "$HAD_RATE_LIMIT" = true ]; then

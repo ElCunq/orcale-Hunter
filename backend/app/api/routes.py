@@ -19,6 +19,7 @@ class ConfigPayload(BaseModel):
     oci_image_id: Optional[str] = ""
     oci_ocpus: Optional[str] = "4"
     oci_memory_gb: Optional[str] = "24"
+    hunter_mode: Optional[str] = "GRADUAL"
     private_key: Optional[str] = ""
     ssh_public_key: Optional[str] = ""
 

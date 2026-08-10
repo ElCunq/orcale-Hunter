@@ -81,6 +81,7 @@ def write_env_file(data: Dict[str, str]):
         f"OCI_IMAGE_ID={quote_val(data.get('OCI_IMAGE_ID', ''))}",
         f"OCI_OCPUS={quote_val(data.get('OCI_OCPUS', '4'))}",
         f"OCI_MEMORY_GB={quote_val(data.get('OCI_MEMORY_GB', '24'))}",
+        f"HUNTER_MODE={quote_val(data.get('HUNTER_MODE', 'GRADUAL'))}",
         f"OCI_SSH_PUBLIC_KEY={quote_val(data.get('OCI_SSH_PUBLIC_KEY', ''))}",
     ]
     with open(ENV_FILE, "w", encoding="utf-8") as f:
@@ -164,6 +165,7 @@ def get_full_config() -> Dict[str, Any]:
         "oci_image_id": env_vars.get("OCI_IMAGE_ID", ""),
         "oci_ocpus": env_vars.get("OCI_OCPUS", "4"),
         "oci_memory_gb": env_vars.get("OCI_MEMORY_GB", "24"),
+        "hunter_mode": env_vars.get("HUNTER_MODE", "GRADUAL"),
         "private_key": pem_key,
         "ssh_public_key": ssh_key or env_vars.get("OCI_SSH_PUBLIC_KEY", ""),
     }
@@ -179,6 +181,7 @@ def save_full_config(data: Dict[str, Any]):
         "OCI_IMAGE_ID": data.get("oci_image_id", ""),
         "OCI_OCPUS": data.get("oci_ocpus", "4"),
         "OCI_MEMORY_GB": data.get("oci_memory_gb", "24"),
+        "HUNTER_MODE": data.get("hunter_mode", "GRADUAL"),
         "OCI_SSH_PUBLIC_KEY": data.get("ssh_public_key", ""),
     }
     write_env_file(env_data)

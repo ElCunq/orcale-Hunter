@@ -1,5 +1,5 @@
 import React from 'react';
-import { Server, Network, Image as ImageIcon, KeyRound, Cpu, HardDrive } from 'lucide-react';
+import { Server, Network, Image as ImageIcon, KeyRound, Cpu, HardDrive, Zap } from 'lucide-react';
 import { ConfigData } from '../api/client';
 
 interface ResourceConfigProps {
@@ -15,22 +15,36 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({ config, onChange
           <Server className="w-4 h-4 text-emerald-400" /> Oracle Sunucu & Donanım Kaynak Ayarları
         </h3>
         <p className="text-xs text-zinc-400 mt-1">
-          Oluşturulacak VM.Standard.A1.Flex sunucusunun OCPU/RAM donanımı, ağ (Subnet) ve SSH bilgileri.
+          Oluşturulacak VM.Standard.A1.Flex sunucusunun OCPU/RAM donanımı, av stratejisi ve ağ bilgileri.
         </p>
       </div>
 
-      {/* Target Spec Selection Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-zinc-950 p-4 rounded-lg border border-zinc-800">
+      {/* Target Spec & Strategy Selection Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-zinc-950 p-4 rounded-lg border border-zinc-800">
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
-            <Cpu className="w-3.5 h-3.5 text-emerald-400" /> Hedef OCPU Sayısı
+            <Zap className="w-3.5 h-3.5 text-amber-400" /> Av Stratejisi
+          </label>
+          <select
+            value={config.hunter_mode || 'GRADUAL'}
+            onChange={(e) => onChange('hunter_mode', e.target.value)}
+            className="w-full shadcn-input font-mono cursor-pointer"
+          >
+            <option value="GRADUAL">Kademeli Av (4C/24G → 3C/18G → 2C/12G)</option>
+            <option value="EXACT">Sabit Donanım (Sadece Seçilen)</option>
+          </select>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
+            <Cpu className="w-3.5 h-3.5 text-emerald-400" /> Hedef OCPU
           </label>
           <select
             value={config.oci_ocpus || '4'}
             onChange={(e) => onChange('oci_ocpus', e.target.value)}
             className="w-full shadcn-input font-mono cursor-pointer"
           >
-            <option value="4">4 OCPU (Maksimum Always Free)</option>
+            <option value="4">4 OCPU (Maksimum Free)</option>
             <option value="3">3 OCPU</option>
             <option value="2">2 OCPU</option>
             <option value="1">1 OCPU</option>
@@ -39,14 +53,14 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({ config, onChange
 
         <div className="space-y-1.5">
           <label className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
-            <HardDrive className="w-3.5 h-3.5 text-emerald-400" /> Hedef RAM Miktarı (GB)
+            <HardDrive className="w-3.5 h-3.5 text-emerald-400" /> Hedef RAM (GB)
           </label>
           <select
             value={config.oci_memory_gb || '24'}
             onChange={(e) => onChange('oci_memory_gb', e.target.value)}
             className="w-full shadcn-input font-mono cursor-pointer"
           >
-            <option value="24">24 GB RAM (Maksimum Always Free)</option>
+            <option value="24">24 GB RAM (Maksimum Free)</option>
             <option value="18">18 GB RAM</option>
             <option value="12">12 GB RAM</option>
             <option value="6">6 GB RAM</option>
