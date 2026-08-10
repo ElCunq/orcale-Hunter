@@ -168,7 +168,7 @@ else
             --query "data[].name" \
             --raw-output 2>/dev/null || true)
         
-        echo "$raw_ads" | grep -v 'ERROR:' | grep -v 'Abort' | grep -v 'Could not find' | tr -d '[],"' | xargs -n1 2>/dev/null || true
+        echo "$raw_ads" | grep -E '^[A-Za-z0-9_-]+:[A-Za-z0-9_-]+' | tr -d '[],"' | xargs -n1 2>/dev/null || true
     }
     ADS=$(get_ads)
 fi
@@ -217,6 +217,12 @@ while true; do
     echo "[INFO] Round #$ROUND AD Queue Order: ${CURRENT_ADS[*]}"
 
     for AD in "${CURRENT_ADS[@]}"; do
+        # Validate AD string format (must contain colon e.g. Xbrv:EU-FRANKFURT-1-AD-1)
+        if [[ ! "$AD" =~ : ]]; then
+            echo "[WARN] Skipping invalid Availability Domain string: '$AD'"
+            continue
+        fi
+
         for SPEC in "${TIER_SPECS[@]}"; do
             TARGET_OCPU="${SPEC%:*}"
             TARGET_RAM="${SPEC#*:}"
