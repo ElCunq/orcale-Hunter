@@ -31,6 +31,10 @@ load_env() {
 load_env "/data/.env"
 load_env "/.env"
 
+# Target CPU / Memory configuration (Default: 4 OCPU, 24 GB RAM)
+OCI_OCPUS="${OCI_OCPUS:-4}"
+OCI_MEMORY_GB="${OCI_MEMORY_GB:-24}"
+
 # 2. Telegram notification helper
 telegram() {
     local msg="$1"
@@ -68,9 +72,10 @@ if [ -z "$OCI_SUBNET_ID" ] || [ "$OCI_SUBNET_ID" = "null" ]; then
 fi
 
 echo "[INFO] Compartment ID: $OCI_COMPARTMENT_ID"
+echo "[INFO] Target Spec: ${OCI_OCPUS} OCPU / ${OCI_MEMORY_GB} GB RAM"
 
 # Send startup notification
-telegram "🚀 Oracle A1 Hunter servisi başlatıldı. Target: VM.Standard.A1.Flex (2 OCPU, 12GB RAM, 200GB Boot Disk)"
+telegram "🚀 Oracle A1 Hunter servisi başlatıldı. Target: VM.Standard.A1.Flex (${OCI_OCPUS} OCPU, ${OCI_MEMORY_GB}GB RAM, 200GB Boot Disk)"
 
 # 4. SSH Key setup
 AUTHORIZED_KEYS_PATH="/tmp/authorized_keys"
@@ -101,12 +106,22 @@ if [ "$EXISTING_COUNT" -gt 0 ]; then
     exit 0
 fi
 
-# 6. Resolve Image ID
+# 6. Resolve Image ID (Automatic discovery fallback)
 IMAGE_ID="$OCI_IMAGE_ID"
 
 if [ -z "$IMAGE_ID" ] || [ "$IMAGE_ID" = "null" ]; then
-    echo "[ERROR] OCI_IMAGE_ID tanımlanmamış."
-    telegram "❌ Oracle A1 Hunter Hata: OCI_IMAGE_ID eksik! Lütfen .env dosyasında OCI_IMAGE_ID değerini tanımlayın."
+    echo "[INFO] OCI_IMAGE_ID belirtilmemiş. En güncel Canonical Ubuntu ARM64 imajı otomatik sorgulanıyor..."
+    IMAGE_ID=$(oci compute image list \
+        --compartment-id "$OCI_COMPARTMENT_ID" \
+        --operating-system "Canonical Ubuntu" \
+        --shape "VM.Standard.A1.Flex" \
+        --query "data[?contains(\"display-name\", 'aarch64')].id | [0]" \
+        --raw-output 2>/dev/null || echo "")
+fi
+
+if [ -z "$IMAGE_ID" ] || [ "$IMAGE_ID" = "null" ]; then
+    echo "[ERROR] Canonical Ubuntu ARM64 imajı otomatik bulunamadı."
+    telegram "❌ Oracle A1 Hunter Hata: Canonical Ubuntu ARM64 imajı bulunamadı. Lütfen Image OCID girin."
     exit 1
 fi
 
@@ -115,18 +130,25 @@ echo "[INFO] Using Image ID: $IMAGE_ID"
 # Ensure readable permissions for container user
 chmod 644 /oracle/.oci/config /oracle/.oci/private-key.pem 2>/dev/null || true
 
-# 7. Fetch Availability Domains
-get_ads() {
-    local raw_ads
-    raw_ads=$(oci iam availability-domain list \
-        --compartment-id "$OCI_COMPARTMENT_ID" \
-        --query "data[].name" \
-        --raw-output 2>/dev/null || true)
-    
-    echo "$raw_ads" | grep -v 'ERROR:' | grep -v 'Abort' | grep -v 'Could not find' | tr -d '[],"' | xargs -n1 2>/dev/null || true
-}
+# 7. Check Subnet Type (Regional vs AD-Specific)
+SUBNET_AD=$(oci network subnet get --subnet-id "$OCI_SUBNET_ID" --query 'data."availability-domain"' --raw-output 2>/dev/null || echo "")
 
-ADS=$(get_ads)
+if [ -n "$SUBNET_AD" ] && [ "$SUBNET_AD" != "null" ]; then
+    echo "[INFO] Subnet AD-specific ($SUBNET_AD). Sadece bu AD taranacak."
+    ADS="$SUBNET_AD"
+else
+    echo "[INFO] Subnet Regional. Tüm Availability Domain'ler taranacak."
+    get_ads() {
+        local raw_ads
+        raw_ads=$(oci iam availability-domain list \
+            --compartment-id "$OCI_COMPARTMENT_ID" \
+            --query "data[].name" \
+            --raw-output 2>/dev/null || true)
+        
+        echo "$raw_ads" | grep -v 'ERROR:' | grep -v 'Abort' | grep -v 'Could not find' | tr -d '[],"' | xargs -n1 2>/dev/null || true
+    }
+    ADS=$(get_ads)
+fi
 
 if [ -z "$ADS" ]; then
     echo "[WARN] OCI API'den AD listesi çekilemedi (veya config erişilebilir değil)."
@@ -135,10 +157,11 @@ if [ -z "$ADS" ]; then
     exit 0
 fi
 
-echo "[INFO] Target Availability Domains:"
-for ad in $ADS; do
-    echo "  - $ad"
-done
+# Convert ADS string to array for rotation
+AD_LIST=($ADS)
+NUM_ADS=${#AD_LIST[@]}
+
+echo "[INFO] Target Availability Domains ($NUM_ADS adet): ${AD_LIST[*]}"
 
 # 8. Main Hunter Loop
 ROUND=1
@@ -160,7 +183,17 @@ while true; do
 
     HAD_RATE_LIMIT=false
 
-    for AD in $ADS; do
+    # Rotate AD order on each round (Round-Robin Shift)
+    OFFSET=$(( (ROUND - 1) % NUM_ADS ))
+    CURRENT_ADS=()
+    for (( i=0; i<NUM_ADS; i++ )); do
+        IDX=$(( (i + OFFSET) % NUM_ADS ))
+        CURRENT_ADS+=("${AD_LIST[$IDX]}")
+    done
+
+    echo "[INFO] Round #$ROUND AD Queue Order: ${CURRENT_ADS[*]}"
+
+    for AD in "${CURRENT_ADS[@]}"; do
         echo "[INFO] Trying Availability Domain: $AD..."
 
         # Attempt to launch instance
@@ -170,7 +203,7 @@ while true; do
             --subnet-id "$OCI_SUBNET_ID" \
             --image-id "$IMAGE_ID" \
             --shape "VM.Standard.A1.Flex" \
-            --shape-config '{"ocpus":2,"memoryInGBs":12}' \
+            --shape-config "{\"ocpus\":${OCI_OCPUS},\"memoryInGBs\":${OCI_MEMORY_GB}}" \
             --boot-volume-size-in-gbs 200 \
             --assign-public-ip true \
             --ssh-authorized-keys-file "$AUTHORIZED_KEYS_PATH" \
@@ -209,8 +242,8 @@ while true; do
 Display Name: hermes-vps
 Shape: VM.Standard.A1.Flex
 Availability Domain: ${AD}
-OCPU: 2
-RAM: 12 GB
+OCPU: ${OCI_OCPUS}
+RAM: ${OCI_MEMORY_GB} GB
 Boot Volume: 200 GB
 Public IP: ${PUBLIC_IP}
 Instance OCID: ${INSTANCE_OCID}
@@ -260,8 +293,10 @@ ${LAUNCH_OUTPUT}"
         echo "[INFO] Rate limit reached. Sleeping for 900 seconds (15 minutes)..."
         sleep 900
     else
-        echo "[INFO] All ADs checked, no capacity available. Sleeping 600 seconds (10 minutes)..."
-        sleep 600
+        # Add random jitter (540s to 660s) to avoid exact 10-min pattern spikes
+        JITTER=$(( 540 + RANDOM % 120 ))
+        echo "[INFO] All ADs checked, no capacity available. Sleeping $JITTER seconds..."
+        sleep $JITTER
     fi
 
     ROUND=$((ROUND + 1))

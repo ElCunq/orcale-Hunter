@@ -8,6 +8,8 @@ export interface ConfigData {
   oci_compartment_id: string;
   oci_subnet_id: string;
   oci_image_id: string;
+  oci_ocpus?: string;
+  oci_memory_gb?: string;
   private_key: string;
   ssh_public_key: string;
 }
