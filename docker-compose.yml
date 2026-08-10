@@ -23,6 +23,7 @@ services:
       - ./oci:/oracle/.oci
       - ./data:/data
       - ./ssh:/ssh
+      - ./hunter.sh:/hunter.sh:ro
     entrypoint:
       - /bin/bash
-      - /data/hunter.sh
+      - /hunter.sh
