@@ -159,7 +159,7 @@ get_ads() {
     fi
 
     if [ -z "$parsed" ]; then
-        echo "[ERROR] OCI AD listesi çekilemedi. OCI API Yanıtı: $raw_output"
+        echo "[ERROR] OCI AD listesi çekilemedi. OCI API Yanıtı: $raw_output" >&2
     fi
 
     echo "$parsed" | grep -E ':[A-Za-z0-9_-]+-AD-' || true
@@ -339,6 +339,15 @@ Hunter servisi başarıyla tamamlandı ve durduruldu."
             if echo "$LAUNCH_OUTPUT" | grep -q -iE "NotAuthorizedOrNotFound|Authorization failed or requested resource not found"; then
                 echo "[WARN] AD $AD is not permitted or found (404 NotAuthorizedOrNotFound). Skipping AD..."
                 break
+            fi
+
+            # Check for NotAuthenticated / 401 (Authentication credential mismatch)
+            if echo "$LAUNCH_OUTPUT" | grep -q -iE "NotAuthenticated|401"; then
+                echo "[ERROR] OCI API Kimlik Doğrulama Hatası (HTTP 401 NotAuthenticated)!"
+                echo "[ERROR] Lütfen Web Dashboard üzerinden OCI User OCID, Fingerprint, Tenancy ve Private Key (.pem) bilgilerinizi kontrol edip yeniden kaydedin."
+                telegram "❌ Oracle A1 Hunter Hata: OCI API Kimlik Doğrulama Hatası (HTTP 401 NotAuthenticated)! Lütfen Web UI üzerinden OCI User OCID, Fingerprint, Tenancy ve Private Key (.pem) bilgilerinizi kontrol edip kaydedin."
+                sleep 60
+                continue 2
             fi
 
             # Fatal / Unexpected Error
