@@ -30,14 +30,29 @@ def test_oci_connection() -> Dict[str, Any]:
 
     try:
         import oci
-        identity_client = oci.identity.IdentityClient(config)
-        response = identity_client.list_availability_domains(tenancy)
-        ads_list = [ad.name for ad in response.data]
-        return {
-            "success": True,
-            "message": f"OCI API Bağlantısı Başarılı! {len(ads_list)} Availability Domain doğrulandı.",
-            "availability_domains": ads_list
-        }
+        try:
+            identity_client = oci.identity.IdentityClient(config)
+            response = identity_client.list_availability_domains(tenancy)
+            ads_list = [ad.name for ad in response.data]
+            return {
+                "success": True,
+                "message": f"OCI API Bağlantısı Başarılı! {len(ads_list)} Availability Domain doğrulandı.",
+                "availability_domains": ads_list
+            }
+        except Exception as identity_err:
+            try:
+                compute_client = oci.core.ComputeClient(config)
+                shapes_resp = compute_client.list_shapes(tenancy)
+                ads_list = list(set([s.availability_domain for s in shapes_resp.data if getattr(s, 'availability_domain', None)]))
+                if ads_list:
+                    return {
+                        "success": True,
+                        "message": f"OCI API Bağlantısı Başarılı (Compute API)! {len(ads_list)} Availability Domain doğrulandı.",
+                        "availability_domains": ads_list
+                    }
+            except Exception:
+                pass
+            raise identity_err
     except Exception as e:
         err_msg = str(e)
         if "Invalid" in err_msg or "NotAuthorizedOrNotFound" in err_msg or "401" in err_msg:
