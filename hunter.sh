@@ -164,13 +164,11 @@ get_ads() {
 }
 
 # 8. Check Subnet Type (Regional vs AD-Specific)
-SUBNET_EXIT=0
-SUBNET_OUTPUT=$(oci network subnet get \
+SUBNET_OUTPUT=""
+if ! SUBNET_OUTPUT=$(oci network subnet get \
     --subnet-id "$OCI_SUBNET_ID" \
     --query 'data."availability-domain"' \
-    --raw-output 2>&1) || SUBNET_EXIT=$?
-
-if [ "$SUBNET_EXIT" -ne 0 ]; then
+    --raw-output 2>&1); then
     echo "[WARN] OCI Subnet bilgisi sorgulanamadı (geçici ağ hatası veya varsayılan erişim)."
     echo "[WARN] Regional Subnet varsayılarak tüm Availability Domain'ler taranacak."
     CLEAN_SUBNET_AD=""
