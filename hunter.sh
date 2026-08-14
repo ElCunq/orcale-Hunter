@@ -159,10 +159,10 @@ get_ads() {
     fi
 
     if [ -z "$parsed" ]; then
-        echo "[ERROR] OCI AD listesi çekilemedi. OCI API Yanıtı: $raw_output"
+        echo "[ERROR] OCI AD listesi çekilemedi. OCI API Yanıtı: $raw_output" >&2
     fi
 
-    echo "$parsed" | grep -E ':[A-Za-z0-9_-]+-AD-' || true
+    echo "$parsed"
 }
 
 # 8. Check Subnet Type (Regional vs AD-Specific)
