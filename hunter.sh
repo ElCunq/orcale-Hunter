@@ -82,9 +82,6 @@ fi
 echo "[INFO] Compartment ID: $OCI_COMPARTMENT_ID"
 echo "[INFO] Hunter Mode: $HUNTER_MODE. Target Tiers: ${TIER_SPECS[*]}"
 
-# Send startup notification
-telegram "🚀 Oracle A1 Hunter servisi başlatıldı. Strateji: ${HUNTER_MODE} (${TIER_SPECS[*]}, 200GB Boot Disk)"
-
 # 4. SSH Key setup
 AUTHORIZED_KEYS_PATH="/tmp/authorized_keys"
 if [ -n "$OCI_SSH_PUBLIC_KEY" ]; then
@@ -140,7 +137,33 @@ echo "[INFO] Using Image ID: $IMAGE_ID"
 # Ensure readable permissions for container user
 chmod 644 /oracle/.oci/config /oracle/.oci/private-key.pem 2>/dev/null || true
 
-# 7. Check Subnet Type (Regional vs AD-Specific)
+# 7. Helper function to fetch Availability Domains (Tenancy OCID priority)
+get_ads() {
+    local tenancy_id
+    tenancy_id=$(grep -E '^tenancy=' /oracle/.oci/config | head -n1 | cut -d'=' -f2 | tr -d ' "\r' || true)
+    [ -z "$tenancy_id" ] && tenancy_id="$OCI_COMPARTMENT_ID"
+
+    local raw_ads
+    raw_ads=$(oci iam availability-domain list \
+        --compartment-id "$tenancy_id" \
+        --query "data[].name" \
+        --raw-output 2>/dev/null || true)
+    
+    local parsed
+    parsed=$(echo "$raw_ads" | tr -d '[],"' | xargs -n1 2>/dev/null | grep -E ':[A-Za-z0-9_-]+-AD-' || true)
+
+    if [ -z "$parsed" ] && [ -n "$OCI_COMPARTMENT_ID" ] && [ "$OCI_COMPARTMENT_ID" != "$tenancy_id" ]; then
+        raw_ads=$(oci iam availability-domain list \
+            --compartment-id "$OCI_COMPARTMENT_ID" \
+            --query "data[].name" \
+            --raw-output 2>/dev/null || true)
+        parsed=$(echo "$raw_ads" | tr -d '[],"' | xargs -n1 2>/dev/null | grep -E ':[A-Za-z0-9_-]+-AD-' || true)
+    fi
+
+    echo "$parsed"
+}
+
+# 8. Check Subnet Type (Regional vs AD-Specific)
 SUBNET_EXIT=0
 SUBNET_OUTPUT=$(oci network subnet get \
     --subnet-id "$OCI_SUBNET_ID" \
@@ -161,38 +184,38 @@ if [ -n "$CLEAN_SUBNET_AD" ]; then
     ADS="$CLEAN_SUBNET_AD"
 else
     echo "[INFO] Subnet Regional. Tüm Availability Domain'ler taranacak."
-    get_ads() {
-        local raw_ads
-        raw_ads=$(oci iam availability-domain list \
-            --compartment-id "$OCI_COMPARTMENT_ID" \
-            --query "data[].name" \
-            --raw-output 2>/dev/null || true)
-        
-        echo "$raw_ads" | tr -d '[],"' | xargs -n1 2>/dev/null | grep -E ':[A-Za-z0-9_-]+-AD-' || true
-    }
     ADS=$(get_ads)
 fi
 
-if [ -z "$ADS" ]; then
-    echo "[WARN] OCI API'den AD listesi çekilemedi (veya config erişilebilir değil)."
-    echo "[WARN] 15 saniye beklenip tekrar denenecek."
-    sleep 15
-    exit 0
-fi
+# Send startup notification ONLY ONCE after initial setup validation
+STARTUP_NOTIFIED=false
 
-# Convert ADS string to array for rotation
-AD_LIST=($ADS)
-NUM_ADS=${#AD_LIST[@]}
-
-echo "[INFO] Target Availability Domains ($NUM_ADS adet): ${AD_LIST[*]}"
-
-# 8. Main Hunter Loop
+# 9. Main Hunter Loop
 ROUND=1
 while true; do
     if [ -f "$SUCCESS_MARKER" ]; then
         echo "[INFO] Success marker created. Exiting loop."
         exit 0
     fi
+
+    # Ensure AD list is populated
+    if [ -z "$ADS" ]; then
+        echo "[WARN] OCI API'den AD listesi henüz çekilemedi."
+        echo "[WARN] 30 saniye beklenip döngü içinde tekrar denenecek..."
+        sleep 30
+        ADS=$(get_ads)
+        continue
+    fi
+
+    # Send startup notification ONCE when main loop is active
+    if [ "$STARTUP_NOTIFIED" = false ]; then
+        telegram "🚀 Oracle A1 Hunter servisi başlatıldı. Strateji: ${HUNTER_MODE} (${TIER_SPECS[*]}, 200GB Boot Disk)"
+        STARTUP_NOTIFIED=true
+    fi
+
+    # Convert ADS string to array for rotation
+    AD_LIST=($ADS)
+    NUM_ADS=${#AD_LIST[@]}
 
     echo "=========================================="
     echo "[INFO] Starting hunting round #$ROUND at $(date)"
