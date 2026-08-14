@@ -159,11 +159,10 @@ get_ads() {
     fi
 
     if [ -z "$parsed" ]; then
-        echo "[ERROR] OCI AD listesi çekilemedi. Ham OCI CLI çıktısı:" >&2
-        echo "$raw_output" >&2
+        echo "[ERROR] OCI AD listesi çekilemedi. OCI API Yanıtı: $raw_output"
     fi
 
-    echo "$parsed"
+    echo "$parsed" | grep -E ':[A-Za-z0-9_-]+-AD-' || true
 }
 
 # 8. Check Subnet Type (Regional vs AD-Specific)
@@ -202,6 +201,8 @@ while true; do
     # Ensure AD list is populated
     if [ -z "$ADS" ]; then
         echo "[WARN] OCI API'den AD listesi henüz çekilemedi."
+        echo "[DEBUG] OCI Config Check: /oracle/.oci/config $([ -f /oracle/.oci/config ] && echo 'MEVCUT' || echo 'EKSİK')"
+        echo "[DEBUG] OCI Key Check: /oracle/.oci/private-key.pem $([ -f /oracle/.oci/private-key.pem ] && echo 'MEVCUT' || echo 'EKSİK')"
         echo "[WARN] 30 saniye beklenip döngü içinde tekrar denenecek..."
         sleep 30
         ADS=$(get_ads)
