@@ -130,8 +130,15 @@ def read_private_key() -> str:
 
 def write_private_key(key_content: str):
     ensure_dirs()
-    key_content = key_content.strip()
+    key_content = (key_content or "").strip()
     if key_content:
+        # Convert literal '\n' or '\\n' text strings into real line breaks
+        key_content = key_content.replace("\\n", "\n")
+        # Ensure proper PEM header/footer formatting if missing line breaks
+        if "-----BEGIN" in key_content and "\n" not in key_content:
+            key_content = re.sub(r'(-----BEGIN [A-Z ]+-----)\s*', r'\1\n', key_content)
+            key_content = re.sub(r'\s*(-----END [A-Z ]+-----)', r'\n\1', key_content)
+
         with open(OCI_KEY_FILE, "w", encoding="utf-8") as f:
             f.write(key_content + "\n")
         OCI_KEY_FILE.chmod(0o644)
@@ -155,51 +162,51 @@ def get_full_config() -> Dict[str, Any]:
     ssh_key = read_ssh_key()
 
     return {
-        "telegram_bot_token": env_vars.get("TELEGRAM_BOT_TOKEN", ""),
-        "telegram_chat_id": env_vars.get("TELEGRAM_CHAT_ID", ""),
-        "oci_user": oci_cfg.get("user", ""),
-        "oci_fingerprint": oci_cfg.get("fingerprint", ""),
-        "oci_tenancy": oci_cfg.get("tenancy", ""),
-        "oci_region": oci_cfg.get("region", "eu-frankfurt-1"),
-        "oci_compartment_id": env_vars.get("OCI_COMPARTMENT_ID", oci_cfg.get("tenancy", "")),
-        "oci_subnet_id": env_vars.get("OCI_SUBNET_ID", ""),
-        "oci_image_id": env_vars.get("OCI_IMAGE_ID", ""),
-        "oci_ocpus": env_vars.get("OCI_OCPUS", "4"),
-        "oci_memory_gb": env_vars.get("OCI_MEMORY_GB", "24"),
-        "hunter_mode": env_vars.get("HUNTER_MODE", "GRADUAL"),
+        "telegram_bot_token": env_vars.get("TELEGRAM_BOT_TOKEN", "").strip(),
+        "telegram_chat_id": env_vars.get("TELEGRAM_CHAT_ID", "").strip(),
+        "oci_user": oci_cfg.get("user", "").strip(),
+        "oci_fingerprint": oci_cfg.get("fingerprint", "").strip(),
+        "oci_tenancy": oci_cfg.get("tenancy", "").strip(),
+        "oci_region": oci_cfg.get("region", "eu-frankfurt-1").strip(),
+        "oci_compartment_id": env_vars.get("OCI_COMPARTMENT_ID", oci_cfg.get("tenancy", "")).strip(),
+        "oci_subnet_id": env_vars.get("OCI_SUBNET_ID", "").strip(),
+        "oci_image_id": env_vars.get("OCI_IMAGE_ID", "").strip(),
+        "oci_ocpus": env_vars.get("OCI_OCPUS", "4").strip(),
+        "oci_memory_gb": env_vars.get("OCI_MEMORY_GB", "24").strip(),
+        "hunter_mode": env_vars.get("HUNTER_MODE", "GRADUAL").strip(),
         "private_key": pem_key,
-        "ssh_public_key": ssh_key or env_vars.get("OCI_SSH_PUBLIC_KEY", ""),
+        "ssh_public_key": ssh_key or env_vars.get("OCI_SSH_PUBLIC_KEY", "").strip(),
     }
 
 def save_full_config(data: Dict[str, Any]):
-    compartment_id = data.get("oci_compartment_id", "").strip() or data.get("oci_tenancy", "").strip()
+    compartment_id = (data.get("oci_compartment_id", "") or "").strip() or (data.get("oci_tenancy", "") or "").strip()
     # Save .env
     env_data = {
-        "TELEGRAM_BOT_TOKEN": data.get("telegram_bot_token", ""),
-        "TELEGRAM_CHAT_ID": data.get("telegram_chat_id", ""),
+        "TELEGRAM_BOT_TOKEN": (data.get("telegram_bot_token", "") or "").strip(),
+        "TELEGRAM_CHAT_ID": (data.get("telegram_chat_id", "") or "").strip(),
         "OCI_COMPARTMENT_ID": compartment_id,
-        "OCI_SUBNET_ID": data.get("oci_subnet_id", ""),
-        "OCI_IMAGE_ID": data.get("oci_image_id", ""),
-        "OCI_OCPUS": data.get("oci_ocpus", "4"),
-        "OCI_MEMORY_GB": data.get("oci_memory_gb", "24"),
-        "HUNTER_MODE": data.get("hunter_mode", "GRADUAL"),
-        "OCI_SSH_PUBLIC_KEY": data.get("ssh_public_key", ""),
+        "OCI_SUBNET_ID": (data.get("oci_subnet_id", "") or "").strip(),
+        "OCI_IMAGE_ID": (data.get("oci_image_id", "") or "").strip(),
+        "OCI_OCPUS": (data.get("oci_ocpus", "4") or "").strip(),
+        "OCI_MEMORY_GB": (data.get("oci_memory_gb", "24") or "").strip(),
+        "HUNTER_MODE": (data.get("hunter_mode", "GRADUAL") or "").strip(),
+        "OCI_SSH_PUBLIC_KEY": (data.get("ssh_public_key", "") or "").strip(),
     }
     write_env_file(env_data)
 
     # Save OCI config
     oci_data = {
-        "user": data.get("oci_user", ""),
-        "fingerprint": data.get("oci_fingerprint", ""),
-        "tenancy": data.get("oci_tenancy", ""),
-        "region": data.get("oci_region", "eu-frankfurt-1"),
+        "user": (data.get("oci_user", "") or "").strip(),
+        "fingerprint": (data.get("oci_fingerprint", "") or "").strip(),
+        "tenancy": (data.get("oci_tenancy", "") or "").strip(),
+        "region": (data.get("oci_region", "eu-frankfurt-1") or "").strip(),
     }
     write_oci_config(oci_data)
 
     # Save private key
-    if "private_key" in data and data["private_key"].strip():
-        write_private_key(data["private_key"])
+    if "private_key" in data and str(data["private_key"]).strip():
+        write_private_key(str(data["private_key"]))
 
     # Save SSH key
     if "ssh_public_key" in data:
-        write_ssh_key(data["ssh_public_key"])
+        write_ssh_key(str(data["ssh_public_key"]))
