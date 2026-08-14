@@ -137,7 +137,7 @@ echo "[INFO] Using Image ID: $IMAGE_ID"
 # Ensure readable permissions for container user
 chmod 644 /oracle/.oci/config /oracle/.oci/private-key.pem 2>/dev/null || true
 
-# 7. Helper function to fetch Availability Domains (Tenancy OCID priority)
+# 7. Helper function to fetch Availability Domains (Tenancy OCID priority + Fallback)
 get_ads() {
     local tenancy_id
     tenancy_id=$(grep -E '^tenancy=' /oracle/.oci/config | head -n1 | cut -d'=' -f2 | tr -d ' "\r' || true)
@@ -156,6 +156,13 @@ get_ads() {
             --compartment-id "$OCI_COMPARTMENT_ID" \
             --output json 2>&1 || true)
         parsed=$(echo "$raw_output" | grep -oE '[A-Za-z0-9_-]+:[A-Za-z0-9_-]+-AD-[0-9]+' | sort -u || true)
+    fi
+
+    # Fallback: Infer AD names from compute instances in compartment if IAM listing fails
+    if [ -z "$parsed" ] && [ -n "$OCI_COMPARTMENT_ID" ]; then
+        local comp_instances
+        comp_instances=$(oci compute instance list --compartment-id "$OCI_COMPARTMENT_ID" --output json 2>/dev/null || true)
+        parsed=$(echo "$comp_instances" | grep -oE '[A-Za-z0-9_-]+:[A-Za-z0-9_-]+-AD-[0-9]+' | sort -u || true)
     fi
 
     if [ -z "$parsed" ]; then
