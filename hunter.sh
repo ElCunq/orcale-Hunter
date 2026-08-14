@@ -159,7 +159,7 @@ get_ads() {
     fi
 
     if [ -z "$parsed" ]; then
-        echo "[ERROR] OCI AD listesi çekilemedi. OCI API Yanıtı: $raw_output" >&2
+        echo "[ERROR] OCI AD listesi çekilemedi. OCI API Yanıtı: $raw_output"
     fi
 
     echo "$parsed" | grep -E ':[A-Za-z0-9_-]+-AD-' || true
@@ -189,6 +189,7 @@ fi
 
 # Send startup notification ONLY ONCE after initial setup validation
 STARTUP_NOTIFIED=false
+AUTH_NOTIFIED=false
 
 # 9. Main Hunter Loop
 ROUND=1
@@ -203,6 +204,10 @@ while true; do
         echo "[WARN] OCI API'den AD listesi henüz çekilemedi."
         echo "[DEBUG] OCI Config Check: /oracle/.oci/config $([ -f /oracle/.oci/config ] && echo 'MEVCUT' || echo 'EKSİK')"
         echo "[DEBUG] OCI Key Check: /oracle/.oci/private-key.pem $([ -f /oracle/.oci/private-key.pem ] && echo 'MEVCUT' || echo 'EKSİK')"
+        if [ "$AUTH_NOTIFIED" = false ]; then
+            telegram "⚠️ Oracle A1 Hunter Bildirimi: OCI API'ye bağlanılamıyor. Lütfen Web Dashboard üzerinden OCI User OCID, Fingerprint, Tenancy ve Private Key (.pem) bilgilerinizi kontrol edip yeniden kaydedin."
+            AUTH_NOTIFIED=true
+        fi
         echo "[WARN] 30 saniye beklenip döngü içinde tekrar denenecek..."
         sleep 30
         ADS=$(get_ads)
