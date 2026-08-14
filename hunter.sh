@@ -143,21 +143,24 @@ get_ads() {
     tenancy_id=$(grep -E '^tenancy=' /oracle/.oci/config | head -n1 | cut -d'=' -f2 | tr -d ' "\r' || true)
     [ -z "$tenancy_id" ] && tenancy_id="$OCI_COMPARTMENT_ID"
 
-    local raw_ads
-    raw_ads=$(oci iam availability-domain list \
+    local raw_output
+    raw_output=$(oci iam availability-domain list \
         --compartment-id "$tenancy_id" \
-        --query "data[].name" \
-        --raw-output 2>/dev/null || true)
+        --output json 2>&1 || true)
     
     local parsed
-    parsed=$(echo "$raw_ads" | tr -d '[],"' | xargs -n1 2>/dev/null | grep -E ':[A-Za-z0-9_-]+-AD-' || true)
+    parsed=$(echo "$raw_output" | grep -oE '[A-Za-z0-9_-]+:[A-Za-z0-9_-]+-AD-[0-9]+' | sort -u || true)
 
     if [ -z "$parsed" ] && [ -n "$OCI_COMPARTMENT_ID" ] && [ "$OCI_COMPARTMENT_ID" != "$tenancy_id" ]; then
-        raw_ads=$(oci iam availability-domain list \
+        raw_output=$(oci iam availability-domain list \
             --compartment-id "$OCI_COMPARTMENT_ID" \
-            --query "data[].name" \
-            --raw-output 2>/dev/null || true)
-        parsed=$(echo "$raw_ads" | tr -d '[],"' | xargs -n1 2>/dev/null | grep -E ':[A-Za-z0-9_-]+-AD-' || true)
+            --output json 2>&1 || true)
+        parsed=$(echo "$raw_output" | grep -oE '[A-Za-z0-9_-]+:[A-Za-z0-9_-]+-AD-[0-9]+' | sort -u || true)
+    fi
+
+    if [ -z "$parsed" ]; then
+        echo "[ERROR] OCI AD listesi çekilemedi. Ham OCI CLI çıktısı:" >&2
+        echo "$raw_output" >&2
     fi
 
     echo "$parsed"
