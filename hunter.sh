@@ -148,14 +148,13 @@ SUBNET_OUTPUT=$(oci network subnet get \
     --raw-output 2>&1) || SUBNET_EXIT=$?
 
 if [ "$SUBNET_EXIT" -ne 0 ]; then
-    echo "[ERROR] Subnet bilgisi sorgulanamadı (OCID veya erişim hatası):"
-    echo "$SUBNET_OUTPUT"
-    telegram "❌ Oracle A1 Hunter Hata: OCI Subnet bilgisi sorgulanamadı. Lütfen Subnet OCID değerini kontrol edin."
-    exit 1
+    echo "[WARN] OCI Subnet bilgisi sorgulanamadı (geçici ağ hatası veya varsayılan erişim)."
+    echo "[WARN] Regional Subnet varsayılarak tüm Availability Domain'ler taranacak."
+    CLEAN_SUBNET_AD=""
+else
+    # Filter and extract valid OCI AD string if subnet is AD-specific
+    CLEAN_SUBNET_AD=$(echo "$SUBNET_OUTPUT" | grep -E '^[A-Za-z0-9_-]+:[A-Za-z0-9_-]+' || true)
 fi
-
-# Filter and extract valid OCI AD string if subnet is AD-specific
-CLEAN_SUBNET_AD=$(echo "$SUBNET_OUTPUT" | grep -E '^[A-Za-z0-9_-]+:[A-Za-z0-9_-]+' || true)
 
 if [ -n "$CLEAN_SUBNET_AD" ]; then
     echo "[INFO] Subnet AD-specific ($CLEAN_SUBNET_AD). Sadece bu AD taranacak."
@@ -309,6 +308,12 @@ Hunter servisi başarıyla tamamlandı ve durduruldu."
                 echo "[WARN] Temporary OCI network timeout on $AD. Sleeping 60s before retrying..."
                 sleep 60
                 continue 2
+            fi
+
+            # Check for NotAuthorizedOrNotFound / 404 (AD or resource not permitted/available in tenancy)
+            if echo "$LAUNCH_OUTPUT" | grep -q -iE "NotAuthorizedOrNotFound|Authorization failed or requested resource not found"; then
+                echo "[WARN] AD $AD is not permitted or found (404 NotAuthorizedOrNotFound). Skipping AD..."
+                break
             fi
 
             # Fatal / Unexpected Error
