@@ -136,13 +136,20 @@ def write_private_key(key_content: str):
     if key_content:
         # Convert literal '\n' or '\\n' text strings into real line breaks
         key_content = key_content.replace("\\n", "\n")
+
+        # Automatically trim any stray text (e.g. OCI_API_KEY) after END PRIVATE KEY marker
+        end_match = re.search(r'-----END [A-Z ]+-----', key_content)
+        if end_match:
+            end_pos = end_match.end()
+            key_content = key_content[:end_pos]
+
         # Ensure proper PEM header/footer formatting if missing line breaks
         if "-----BEGIN" in key_content and "\n" not in key_content:
             key_content = re.sub(r'(-----BEGIN [A-Z ]+-----)\s*', r'\1\n', key_content)
             key_content = re.sub(r'\s*(-----END [A-Z ]+-----)', r'\n\1', key_content)
 
         with open(OCI_KEY_FILE, "w", encoding="utf-8") as f:
-            f.write(key_content + "\n")
+            f.write(key_content.strip() + "\n")
         OCI_KEY_FILE.chmod(0o644)
 
 def read_ssh_key() -> str:
