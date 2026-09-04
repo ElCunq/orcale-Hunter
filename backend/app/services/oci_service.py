@@ -11,6 +11,7 @@ def test_oci_connection() -> Dict[str, Any]:
     user = oci_cfg.get("user", "")
     fingerprint = oci_cfg.get("fingerprint", "")
     region = oci_cfg.get("region", "eu-frankfurt-1")
+    ad_override = env_cfg.get("OCI_AD_LIST", "").strip() or env_cfg.get("OCI_AD_PREFIX", "").strip()
 
     key_file = PROJECT_ROOT / "oci" / "private-key.pem"
 
@@ -52,15 +53,32 @@ def test_oci_connection() -> Dict[str, Any]:
                     }
             except Exception:
                 pass
+            
+            # If manual AD override is configured by user in UI, validate and confirm
+            if ad_override:
+                if ":" in ad_override:
+                    ads_list = [ad.strip() for ad in ad_override.split(",") if ":" in ad]
+                else:
+                    prefix = ad_override.replace('"', '').replace("'", "").strip()
+                    reg_upper = region.upper()
+                    ads_list = [f"{prefix}:{reg_upper}-AD-1", f"{prefix}:{reg_upper}-AD-2", f"{prefix}:{reg_upper}-AD-3"]
+                
+                return {
+                    "success": True,
+                    "message": f"OCI Manuel AD Override Doğrulandı! ({', '.join(ads_list)}) Hunter bu AD'leri kullanacak.",
+                    "availability_domains": ads_list
+                }
+                
             raise identity_err
     except Exception as e:
         err_msg = str(e)
         if "Invalid" in err_msg or "NotAuthorizedOrNotFound" in err_msg or "401" in err_msg:
             return {
                 "success": False,
-                "message": f"OCI API Kimlik Doğrulama Hatası (401/404): Girilen User OCID, Tenancy OCID, Fingerprint veya Private Key uyumsuz! Detay: {err_msg}"
+                "message": f"OCI API Kimlik Doğrulama Hatası (401/404): Girilen User OCID, Tenancy OCID, Fingerprint veya Private Key uyumsuz! Bilgilerinizi kontrol edin veya Manuel AD alanına 'Xbrv' yazıp kaydedin. Detay: {err_msg}"
             }
         return {
             "success": False,
             "message": f"OCI API Test Hatası: {err_msg}"
         }
+

@@ -39,13 +39,15 @@ def ensure_dirs():
         except Exception:
             pass
 
-    # Ensure fresh hunter.sh script is synced to data directory
+    # Ensure fresh hunter.sh script is synced atomically to data directory
     src_script = PROJECT_ROOT / "hunter.sh"
     target_script = data_dir / "hunter.sh"
+    temp_script = data_dir / "hunter.sh.tmp"
     if src_script.exists() and src_script.is_file():
         import shutil
-        shutil.copy2(src_script, target_script)
-        target_script.chmod(0o755)
+        shutil.copy2(src_script, temp_script)
+        temp_script.chmod(0o755)
+        shutil.move(temp_script, target_script)
 
     if OCI_CONFIG_FILE.exists():
         OCI_CONFIG_FILE.chmod(0o644)
