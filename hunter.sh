@@ -7,7 +7,7 @@ SUCCESS_MARKER="/data/success"
 
 # 1. Success marker check
 if [ -f "$SUCCESS_MARKER" ]; then
-    echo "[INFO] Success marker found ($SUCCESS_MARKER). Instance has already been launched. Exiting."
+    echo "[INFO] Success marker found ($SUCCESS_MARKER). Target instances have already been created. Exiting."
     exit 0
 fi
 
@@ -32,15 +32,24 @@ load_env "/data/.env"
 load_env "/.env"
 
 # Target CPU / Memory configuration & Strategy
-HUNTER_MODE="${HUNTER_MODE:-GRADUAL}" # GRADUAL or EXACT
-OCI_OCPUS="${OCI_OCPUS:-4}"
-OCI_MEMORY_GB="${OCI_MEMORY_GB:-24}"
+HUNTER_MODE="${HUNTER_MODE:-QUAD_1C6G}" # QUAD_1C6G (default), GRADUAL, or EXACT
+OCI_OCPUS="${OCI_OCPUS:-1}"
+OCI_MEMORY_GB="${OCI_MEMORY_GB:-6}"
 
 if [ "$HUNTER_MODE" = "EXACT" ]; then
     TIER_SPECS=("${OCI_OCPUS}:${OCI_MEMORY_GB}")
-else
-    # Gradual Step-Down: 4C/24G jackpot -> 3C/18G -> 2C/12G
+    BOOT_VOLUME_GB=200
+    TARGET_COUNT=1
+elif [ "$HUNTER_MODE" = "GRADUAL" ]; then
     TIER_SPECS=("4:24" "3:18" "2:12")
+    BOOT_VOLUME_GB=200
+    TARGET_COUNT=1
+else
+    # Default strategy: QUAD_1C6G (4 instances of 1 OCPU / 6 GB RAM, 50 GB boot volume each)
+    HUNTER_MODE="QUAD_1C6G"
+    TIER_SPECS=("1:6")
+    BOOT_VOLUME_GB=50
+    TARGET_COUNT=4
 fi
 
 # 2. Telegram notification helper
@@ -80,7 +89,7 @@ if [ -z "$OCI_SUBNET_ID" ] || [ "$OCI_SUBNET_ID" = "null" ]; then
 fi
 
 echo "[INFO] Compartment ID: $OCI_COMPARTMENT_ID"
-echo "[INFO] Hunter Mode: $HUNTER_MODE. Target Tiers: ${TIER_SPECS[*]}"
+echo "[INFO] Hunter Mode: $HUNTER_MODE. Target Count: $TARGET_COUNT. Target Tiers: ${TIER_SPECS[*]} (Boot Disk: ${BOOT_VOLUME_GB}GB)"
 
 # 4. SSH Key setup
 AUTHORIZED_KEYS_PATH="/tmp/authorized_keys"
@@ -94,21 +103,34 @@ else
     exit 1
 fi
 
-# 5. Check if hermes-vps instance already exists
-echo "[INFO] Existing instance 'hermes-vps' check running..."
-EXISTING_INSTANCES=$(oci compute instance list \
-    --compartment-id "$OCI_COMPARTMENT_ID" \
-    --display-name "hermes-vps" \
-    --query "data[?\"lifecycle-state\"=='RUNNING' || \"lifecycle-state\"=='PROVISIONING' || \"lifecycle-state\"=='STARTING'].id" \
-    --output json 2>/dev/null || echo "[]")
+# Function to list existing active hermes-vps instances
+get_existing_instances() {
+    oci compute instance list \
+        --compartment-id "$OCI_COMPARTMENT_ID" \
+        --query "data[?\"lifecycle-state\"=='RUNNING' || \"lifecycle-state\"=='PROVISIONING' || \"lifecycle-state\"=='STARTING'].\"display-name\"" \
+        --output json 2>/dev/null || echo "[]"
+}
 
-EXISTING_COUNT=$(echo "$EXISTING_INSTANCES" | grep -c "ocid1.instance" || true)
-
-if [ "$EXISTING_COUNT" -gt 0 ]; then
-    echo "[INFO] Active 'hermes-vps' instance already exists in compartment."
-    telegram "ℹ️ Oracle A1 Hunter: 'hermes-vps' isimli aktif bir instance zaten mevcut! Hunter sonlandırılıyor."
-    touch "$SUCCESS_MARKER"
-    exit 0
+# Check if target instances already exist
+EXISTING_JSON=$(get_existing_instances)
+if [ "$HUNTER_MODE" = "QUAD_1C6G" ]; then
+    ACTIVE_QUAD_COUNT=$(echo "$EXISTING_JSON" | grep -c "hermes-vps" || true)
+    if [ "$ACTIVE_QUAD_COUNT" -ge 4 ]; then
+        echo "[INFO] All 4 'hermes-vps' instances (1C/6G) already exist in compartment."
+        telegram "ℹ️ Oracle A1 Hunter: Hedeflenen 4 adet 1C/6GB VPS sunucusu zaten mevcut ve aktif! Hunter tamamlandı."
+        touch "$SUCCESS_MARKER"
+        exit 0
+    else
+        echo "[INFO] Currently active hermes-vps instances: $ACTIVE_QUAD_COUNT / 4"
+    fi
+else
+    EXISTING_COUNT=$(echo "$EXISTING_JSON" | grep -c "hermes-vps" || true)
+    if [ "$EXISTING_COUNT" -gt 0 ]; then
+        echo "[INFO] Active 'hermes-vps' instance already exists in compartment."
+        telegram "ℹ️ Oracle A1 Hunter: 'hermes-vps' isimli aktif bir instance zaten mevcut! Hunter tamamlandı."
+        touch "$SUCCESS_MARKER"
+        exit 0
+    fi
 fi
 
 # 6. Resolve Image ID (Automatic discovery fallback with TIMECREATED DESC sort)
@@ -137,8 +159,20 @@ echo "[INFO] Using Image ID: $IMAGE_ID"
 # Ensure readable permissions for container user
 chmod 644 /oracle/.oci/config /oracle/.oci/private-key.pem 2>/dev/null || true
 
-# 7. Helper function to fetch Availability Domains (Multi-level IAM + Compute API Fallback)
+# 7. Helper function to fetch Availability Domains (Manual override + Multi-level IAM + Compute API Fallback)
 get_ads() {
+    # 0. Manual AD List / Prefix Override Check
+    if [ -n "$OCI_AD_LIST" ]; then
+        echo "$OCI_AD_LIST" | tr ',' ' ' | xargs -n1 | grep -E ':[A-Za-z0-9_-]+-AD-' | sort -u || true
+        return
+    fi
+    if [ -n "$OCI_AD_PREFIX" ]; then
+        local region_name="${OCI_REGION:-eu-frankfurt-1}"
+        region_name=$(echo "$region_name" | tr '[:lower:]' '[:upper:]')
+        echo "${OCI_AD_PREFIX}:${region_name}-AD-1 ${OCI_AD_PREFIX}:${region_name}-AD-2 ${OCI_AD_PREFIX}:${region_name}-AD-3"
+        return
+    fi
+
     local tenancy_id
     tenancy_id=$(grep -E '^tenancy=' /oracle/.oci/config | head -n1 | cut -d'=' -f2 | tr -d ' "\r' || true)
     [ -z "$tenancy_id" ] && tenancy_id="$OCI_COMPARTMENT_ID"
@@ -205,6 +239,23 @@ fi
 STARTUP_NOTIFIED=false
 AUTH_NOTIFIED=false
 
+# Helper to determine next instance display name to create
+get_target_instance_name() {
+    if [ "$HUNTER_MODE" != "QUAD_1C6G" ]; then
+        echo "hermes-vps"
+        return
+    fi
+    local active_json
+    active_json=$(get_existing_instances)
+    for idx in 1 2 3 4; do
+        if ! echo "$active_json" | grep -q "hermes-vps-$idx"; then
+            echo "hermes-vps-$idx"
+            return
+        fi
+    done
+    echo "hermes-vps-4"
+}
+
 # 9. Main Hunter Loop
 ROUND=1
 while true; do
@@ -228,9 +279,23 @@ while true; do
         continue
     fi
 
+    # Check remaining target count in QUAD_1C6G mode
+    TARGET_DISPLAY_NAME=$(get_target_instance_name)
+    if [ "$HUNTER_MODE" = "QUAD_1C6G" ]; then
+        ACTIVE_JSON=$(get_existing_instances)
+        CURRENT_COUNT=$(echo "$ACTIVE_JSON" | grep -c "hermes-vps" || true)
+        if [ "$CURRENT_COUNT" -ge 4 ]; then
+            echo "[INFO] All 4 instances created and active. Reached target!"
+            telegram "✅ Oracle A1 Hunter: Hedeflenen 4 adet 1C/6GB VPS sunucusunun tamamı kuruldu ve aktif! Hunter tamamlandı."
+            touch "$SUCCESS_MARKER"
+            exit 0
+        fi
+        echo "[INFO] Target Instance Name for this hunt: $TARGET_DISPLAY_NAME (Active: $CURRENT_COUNT / 4)"
+    fi
+
     # Send startup notification ONCE when main loop is active
     if [ "$STARTUP_NOTIFIED" = false ]; then
-        telegram "🚀 Oracle A1 Hunter servisi başlatıldı. Strateji: ${HUNTER_MODE} (${TIER_SPECS[*]}, 200GB Boot Disk)"
+        telegram "🚀 Oracle A1 Hunter servisi başlatıldı. Strateji: ${HUNTER_MODE} (Hedef: ${TARGET_COUNT}x ${TIER_SPECS[0]} - ${BOOT_VOLUME_GB}GB Boot Disk)"
         STARTUP_NOTIFIED=true
     fi
 
@@ -271,7 +336,7 @@ while true; do
             TARGET_OCPU="${SPEC%:*}"
             TARGET_RAM="${SPEC#*:}"
 
-            echo "[INFO] Trying AD: $AD [Spec: ${TARGET_OCPU} OCPU / ${TARGET_RAM} GB RAM]..."
+            echo "[INFO] Trying AD: $AD [Target: $TARGET_DISPLAY_NAME | Spec: ${TARGET_OCPU} OCPU / ${TARGET_RAM} GB RAM / ${BOOT_VOLUME_GB}GB Disk]..."
 
             # Attempt to launch instance
             LAUNCH_OUTPUT=$(oci compute instance launch \
@@ -281,17 +346,17 @@ while true; do
                 --image-id "$IMAGE_ID" \
                 --shape "VM.Standard.A1.Flex" \
                 --shape-config "{\"ocpus\":${TARGET_OCPU},\"memoryInGBs\":${TARGET_RAM}}" \
-                --boot-volume-size-in-gbs 200 \
+                --boot-volume-size-in-gbs "$BOOT_VOLUME_GB" \
                 --assign-public-ip true \
                 --ssh-authorized-keys-file "$AUTHORIZED_KEYS_PATH" \
-                --display-name "hermes-vps" 2>&1) || LAUNCH_EXIT_CODE=$?
+                --display-name "$TARGET_DISPLAY_NAME" 2>&1) || LAUNCH_EXIT_CODE=$?
 
             # Success check
             if echo "$LAUNCH_OUTPUT" | grep -q '"id": "ocid1.instance'; then
                 INSTANCE_OCID=$(echo "$LAUNCH_OUTPUT" | grep -o 'ocid1\.instance\.[^"]*' | head -n1)
                 echo "=========================================="
-                echo "[SUCCESS] Instance created successfully!"
-                echo "Instance OCID: $INSTANCE_OCID (${TARGET_OCPU} OCPU / ${TARGET_RAM} GB RAM)"
+                echo "[SUCCESS] Instance $TARGET_DISPLAY_NAME created successfully!"
+                echo "Instance OCID: $INSTANCE_OCID (${TARGET_OCPU} OCPU / ${TARGET_RAM} GB RAM / ${BOOT_VOLUME_GB}GB Disk)"
                 echo "=========================================="
 
                 echo "[INFO] Waiting for instance to reach RUNNING state..."
@@ -316,22 +381,35 @@ while true; do
 
                 SUCCESS_MSG="✅ Oracle A1 Sunucu Başarıyla Oluşturuldu!
 
-Display Name: hermes-vps
+Display Name: ${TARGET_DISPLAY_NAME}
 Shape: VM.Standard.A1.Flex
 Availability Domain: ${AD}
 OCPU: ${TARGET_OCPU}
 RAM: ${TARGET_RAM} GB
-Boot Volume: 200 GB
+Boot Volume: ${BOOT_VOLUME_GB} GB
 Public IP: ${PUBLIC_IP}
-Instance OCID: ${INSTANCE_OCID}
-
-Hunter servisi başarıyla tamamlandı ve durduruldu."
+Instance OCID: ${INSTANCE_OCID}"
 
                 telegram "$SUCCESS_MSG"
                 echo "$SUCCESS_MSG"
 
-                touch "$SUCCESS_MARKER"
-                exit 0
+                if [ "$HUNTER_MODE" = "QUAD_1C6G" ]; then
+                    ACTIVE_JSON=$(get_existing_instances)
+                    NEW_COUNT=$(echo "$ACTIVE_JSON" | grep -c "hermes-vps" || true)
+                    echo "[INFO] Current total active hermes-vps instances: $NEW_COUNT / 4"
+                    if [ "$NEW_COUNT" -ge 4 ]; then
+                        echo "[INFO] All 4 instances created successfully. Finalizing Hunter."
+                        telegram "🎉 Tebrikler! 4 adet 1C/6GB VPS sunucusunun tamamı başarıyla kuruldu ve aktif edildi. Hunter servisi tamamlandı."
+                        touch "$SUCCESS_MARKER"
+                        exit 0
+                    else
+                        echo "[INFO] Continuing hunt for remaining $((4 - NEW_COUNT)) instances..."
+                        break 2
+                    fi
+                else
+                    touch "$SUCCESS_MARKER"
+                    exit 0
+                fi
             fi
 
             # Check for Out of Capacity error

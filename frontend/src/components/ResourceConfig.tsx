@@ -26,12 +26,20 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({ config, onChange
             <Zap className="w-3.5 h-3.5 text-amber-400" /> Av Stratejisi
           </label>
           <select
-            value={config.hunter_mode || 'GRADUAL'}
-            onChange={(e) => onChange('hunter_mode', e.target.value)}
+            value={config.hunter_mode || 'QUAD_1C6G'}
+            onChange={(e) => {
+              const mode = e.target.value;
+              onChange('hunter_mode', mode);
+              if (mode === 'QUAD_1C6G') {
+                onChange('oci_ocpus', '1');
+                onChange('oci_memory_gb', '6');
+              }
+            }}
             className="w-full shadcn-input font-mono cursor-pointer"
           >
-            <option value="GRADUAL">Kademeli Av (4C/24G → 3C/18G → 2C/12G)</option>
-            <option value="EXACT">Sabit Donanım (Sadece Seçilen)</option>
+            <option value="QUAD_1C6G">🎯 4 Adet 1C/6GB VPS (4x 50GB Disk - Hedef Mod)</option>
+            <option value="GRADUAL">Kademeli Tek VPS (4C/24G → 3C/18G → 2C/12G)</option>
+            <option value="EXACT">Sabit Donanım Tek VPS (Özel OCPU/RAM)</option>
           </select>
         </div>
 
@@ -40,14 +48,15 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({ config, onChange
             <Cpu className="w-3.5 h-3.5 text-emerald-400" /> Hedef OCPU
           </label>
           <select
-            value={config.oci_ocpus || '4'}
+            value={config.oci_ocpus || '1'}
             onChange={(e) => onChange('oci_ocpus', e.target.value)}
-            className="w-full shadcn-input font-mono cursor-pointer"
+            disabled={config.hunter_mode === 'QUAD_1C6G' || config.hunter_mode === 'GRADUAL'}
+            className="w-full shadcn-input font-mono cursor-pointer disabled:opacity-50"
           >
-            <option value="4">4 OCPU (Maksimum Free)</option>
-            <option value="3">3 OCPU</option>
+            <option value="1">1 OCPU (Tekil / 4x Mod)</option>
             <option value="2">2 OCPU</option>
-            <option value="1">1 OCPU</option>
+            <option value="3">3 OCPU</option>
+            <option value="4">4 OCPU (Maksimum Tekil)</option>
           </select>
         </div>
 
@@ -56,14 +65,15 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({ config, onChange
             <HardDrive className="w-3.5 h-3.5 text-emerald-400" /> Hedef RAM (GB)
           </label>
           <select
-            value={config.oci_memory_gb || '24'}
+            value={config.oci_memory_gb || '6'}
             onChange={(e) => onChange('oci_memory_gb', e.target.value)}
-            className="w-full shadcn-input font-mono cursor-pointer"
+            disabled={config.hunter_mode === 'QUAD_1C6G' || config.hunter_mode === 'GRADUAL'}
+            className="w-full shadcn-input font-mono cursor-pointer disabled:opacity-50"
           >
-            <option value="24">24 GB RAM (Maksimum Free)</option>
-            <option value="18">18 GB RAM</option>
+            <option value="6">6 GB RAM (Tekil / 4x Mod)</option>
             <option value="12">12 GB RAM</option>
-            <option value="6">6 GB RAM</option>
+            <option value="18">18 GB RAM</option>
+            <option value="24">24 GB RAM (Maksimum Tekil)</option>
           </select>
         </div>
       </div>

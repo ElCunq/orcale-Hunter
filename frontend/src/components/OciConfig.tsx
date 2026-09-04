@@ -85,6 +85,19 @@ export const OciConfig: React.FC<OciConfigProps> = ({ config, onChange }) => {
             className="w-full shadcn-input font-mono"
           />
         </div>
+
+        <div className="md:col-span-2 space-y-1.5">
+          <label className="text-xs font-medium text-zinc-300 flex items-center gap-1.5">
+            <Globe className="w-3.5 h-3.5 text-amber-400" /> Availability Domain (AD) Manuel Liste / Prefix <span className="text-zinc-400 font-normal">(Opsiyonel - API 401 verirse bypass için Örn: Xbrv:EU-FRANKFURT-1-AD-1,Xbrv:EU-FRANKFURT-1-AD-2 ya da Xbrv)</span>
+          </label>
+          <input
+            type="text"
+            value={config.oci_ad_list || ''}
+            onChange={(e) => onChange('oci_ad_list', e.target.value)}
+            placeholder="Xbrv:EU-FRANKFURT-1-AD-1,Xbrv:EU-FRANKFURT-1-AD-2,Xbrv:EU-FRANKFURT-1-AD-3"
+            className="w-full shadcn-input font-mono text-xs"
+          />
+        </div>
       </div>
 
       {/* Private Key PEM Editor */}

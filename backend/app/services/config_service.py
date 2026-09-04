@@ -171,9 +171,10 @@ def get_full_config() -> Dict[str, Any]:
         "oci_compartment_id": env_vars.get("OCI_COMPARTMENT_ID", oci_cfg.get("tenancy", "")).strip(),
         "oci_subnet_id": env_vars.get("OCI_SUBNET_ID", "").strip(),
         "oci_image_id": env_vars.get("OCI_IMAGE_ID", "").strip(),
-        "oci_ocpus": env_vars.get("OCI_OCPUS", "4").strip(),
-        "oci_memory_gb": env_vars.get("OCI_MEMORY_GB", "24").strip(),
-        "hunter_mode": env_vars.get("HUNTER_MODE", "GRADUAL").strip(),
+        "oci_ocpus": env_vars.get("OCI_OCPUS", "1").strip(),
+        "oci_memory_gb": env_vars.get("OCI_MEMORY_GB", "6").strip(),
+        "hunter_mode": env_vars.get("HUNTER_MODE", "QUAD_1C6G").strip(),
+        "oci_ad_list": env_vars.get("OCI_AD_LIST", "").strip(),
         "private_key": pem_key,
         "ssh_public_key": ssh_key or env_vars.get("OCI_SSH_PUBLIC_KEY", "").strip(),
     }
@@ -187,9 +188,10 @@ def save_full_config(data: Dict[str, Any]):
         "OCI_COMPARTMENT_ID": compartment_id,
         "OCI_SUBNET_ID": (data.get("oci_subnet_id", "") or "").strip(),
         "OCI_IMAGE_ID": (data.get("oci_image_id", "") or "").strip(),
-        "OCI_OCPUS": (data.get("oci_ocpus", "4") or "").strip(),
-        "OCI_MEMORY_GB": (data.get("oci_memory_gb", "24") or "").strip(),
-        "HUNTER_MODE": (data.get("hunter_mode", "GRADUAL") or "").strip(),
+        "OCI_OCPUS": (data.get("oci_ocpus", "1") or "").strip(),
+        "OCI_MEMORY_GB": (data.get("oci_memory_gb", "6") or "").strip(),
+        "HUNTER_MODE": (data.get("hunter_mode", "QUAD_1C6G") or "").strip(),
+        "OCI_AD_LIST": (data.get("oci_ad_list", "") or "").strip(),
         "OCI_SSH_PUBLIC_KEY": (data.get("ssh_public_key", "") or "").strip(),
     }
     write_env_file(env_data)

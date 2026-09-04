@@ -11,6 +11,7 @@ export interface ConfigData {
   oci_ocpus?: string;
   oci_memory_gb?: string;
   hunter_mode?: string;
+  oci_ad_list?: string;
   private_key: string;
   ssh_public_key: string;
 }
