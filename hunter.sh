@@ -161,15 +161,28 @@ chmod 644 /oracle/.oci/config /oracle/.oci/private-key.pem 2>/dev/null || true
 
 # 7. Helper function to fetch Availability Domains (Manual override + Multi-level IAM + Compute API Fallback)
 get_ads() {
+    load_env "/data/.env"
+    load_env "/.env"
+
     # 0. Manual AD List / Prefix Override Check
     if [ -n "$OCI_AD_LIST" ]; then
-        echo "$OCI_AD_LIST" | tr ',' ' ' | xargs -n1 | grep -E ':[A-Za-z0-9_-]+-AD-' | sort -u || true
-        return
+        if [[ "$OCI_AD_LIST" =~ : ]]; then
+            echo "$OCI_AD_LIST" | tr ',' ' ' | xargs -n1 | grep -E ':[A-Za-z0-9_-]+-AD-' | sort -u || true
+            return
+        else
+            # If user entered just a prefix like "Xbrv"
+            local prefix_clean=$(echo "$OCI_AD_LIST" | tr -d ' "\r\n,')
+            local region_name="${OCI_REGION:-eu-frankfurt-1}"
+            region_name=$(echo "$region_name" | tr '[:lower:]' '[:upper:]')
+            echo "${prefix_clean}:${region_name}-AD-1 ${prefix_clean}:${region_name}-AD-2 ${prefix_clean}:${region_name}-AD-3"
+            return
+        fi
     fi
     if [ -n "$OCI_AD_PREFIX" ]; then
+        local prefix_clean=$(echo "$OCI_AD_PREFIX" | tr -d ' "\r\n,')
         local region_name="${OCI_REGION:-eu-frankfurt-1}"
         region_name=$(echo "$region_name" | tr '[:lower:]' '[:upper:]')
-        echo "${OCI_AD_PREFIX}:${region_name}-AD-1 ${OCI_AD_PREFIX}:${region_name}-AD-2 ${OCI_AD_PREFIX}:${region_name}-AD-3"
+        echo "${prefix_clean}:${region_name}-AD-1 ${prefix_clean}:${region_name}-AD-2 ${prefix_clean}:${region_name}-AD-3"
         return
     fi
 
