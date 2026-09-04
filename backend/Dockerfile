@@ -9,6 +9,9 @@ RUN pnpm build
 # Stage 2: Python FastAPI Backend
 FROM python:3.11-slim
 
+# Copy ultra-fast Rust-based uv package installer
+COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
+
 WORKDIR /app
 
 # Install dependencies, Docker CLI, and Docker Compose CLI plugin
@@ -28,7 +31,7 @@ RUN mkdir -p /usr/local/lib/docker/cli-plugins && \
     chmod +x /usr/local/lib/docker/cli-plugins/docker-compose
 
 COPY backend/requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+RUN uv pip install --system --no-cache -r requirements.txt
 
 COPY backend/ .
 COPY --from=frontend-builder /backend/static ./static
