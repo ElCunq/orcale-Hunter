@@ -349,17 +349,18 @@ while true; do
 
             echo "[INFO] Trying AD: $AD [Target: $TARGET_DISPLAY_NAME | Spec: ${TARGET_OCPU} OCPU / ${TARGET_RAM} GB RAM / ${BOOT_VOLUME_GB}GB Disk]..."
 
-            # Sanitize subnet ID
+            # Sanitize subnet ID and construct valid JSON shape-config
             CLEAN_SUBNET_ID=$(echo "$OCI_SUBNET_ID" | tr -d ' "\r\n' || true)
+            SHAPE_CONFIG_JSON=$(printf '{"ocpus":%d,"memoryInGBs":%d}' "$TARGET_OCPU" "$TARGET_RAM")
 
-            # Attempt to launch instance with clean shape-config
+            # Attempt to launch instance with strict JSON shape-config
             LAUNCH_OUTPUT=$(oci compute instance launch \
                 --compartment-id "$OCI_COMPARTMENT_ID" \
                 --availability-domain "$AD" \
                 --subnet-id "$CLEAN_SUBNET_ID" \
                 --image-id "$IMAGE_ID" \
                 --shape "VM.Standard.A1.Flex" \
-                --shape-config "ocpus=${TARGET_OCPU},memoryInGBs=${TARGET_RAM}" \
+                --shape-config "$SHAPE_CONFIG_JSON" \
                 --boot-volume-size-in-gbs "$BOOT_VOLUME_GB" \
                 --assign-public-ip true \
                 --ssh-authorized-keys-file "$AUTHORIZED_KEYS_PATH" \
