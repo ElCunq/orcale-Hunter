@@ -82,9 +82,10 @@ def write_env_file(data: Dict[str, str]):
         f"OCI_COMPARTMENT_ID={quote_val(data.get('OCI_COMPARTMENT_ID', ''))}",
         f"OCI_SUBNET_ID={quote_val(data.get('OCI_SUBNET_ID', ''))}",
         f"OCI_IMAGE_ID={quote_val(data.get('OCI_IMAGE_ID', ''))}",
-        f"OCI_OCPUS={quote_val(data.get('OCI_OCPUS', '4'))}",
-        f"OCI_MEMORY_GB={quote_val(data.get('OCI_MEMORY_GB', '24'))}",
-        f"HUNTER_MODE={quote_val(data.get('HUNTER_MODE', 'GRADUAL'))}",
+        f"OCI_OCPUS={quote_val(data.get('OCI_OCPUS', '1'))}",
+        f"OCI_MEMORY_GB={quote_val(data.get('OCI_MEMORY_GB', '6'))}",
+        f"HUNTER_MODE={quote_val(data.get('HUNTER_MODE', 'QUAD_1C6G'))}",
+        f"OCI_AD_LIST={quote_val(data.get('OCI_AD_LIST', ''))}",
         f"OCI_SSH_PUBLIC_KEY={quote_val(data.get('OCI_SSH_PUBLIC_KEY', ''))}",
     ]
     with open(ENV_FILE, "w", encoding="utf-8") as f:
