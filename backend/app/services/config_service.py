@@ -193,6 +193,18 @@ def get_full_config() -> Dict[str, Any]:
     }
 
 def save_full_config(data: Dict[str, Any]):
+    old_env = read_env_file()
+    old_mode = old_env.get("HUNTER_MODE", "")
+    new_mode = (data.get("hunter_mode", "QUAD_1C6G") or "").strip()
+
+    # If strategy mode changed, automatically clear old success marker
+    if new_mode and new_mode != old_mode:
+        try:
+            from app.services.hunter_service import clear_success_marker
+            clear_success_marker()
+        except Exception:
+            pass
+
     compartment_id = (data.get("oci_compartment_id", "") or "").strip() or (data.get("oci_tenancy", "") or "").strip()
     # Save .env
     env_data = {
@@ -203,7 +215,7 @@ def save_full_config(data: Dict[str, Any]):
         "OCI_IMAGE_ID": (data.get("oci_image_id", "") or "").strip(),
         "OCI_OCPUS": (data.get("oci_ocpus", "1") or "").strip(),
         "OCI_MEMORY_GB": (data.get("oci_memory_gb", "6") or "").strip(),
-        "HUNTER_MODE": (data.get("hunter_mode", "QUAD_1C6G") or "").strip(),
+        "HUNTER_MODE": new_mode,
         "OCI_AD_LIST": (data.get("oci_ad_list", "") or "").strip(),
         "OCI_SSH_PUBLIC_KEY": (data.get("ssh_public_key", "") or "").strip(),
     }
