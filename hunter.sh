@@ -89,16 +89,20 @@ done
 echo "[INFO] Compartment ID: $OCI_COMPARTMENT_ID"
 echo "[INFO] Hunter Mode: $HUNTER_MODE. Target Count: $TARGET_COUNT. Target Tiers: ${TIER_SPECS[*]} (Boot Disk: ${BOOT_VOLUME_GB}GB)"
 
-# 4. SSH Key setup
+# 4. SSH Key setup (Wait loop instead of container exit 1)
 AUTHORIZED_KEYS_PATH="/tmp/authorized_keys"
+while [ -z "$OCI_SSH_PUBLIC_KEY" ] && [ ! -f "/ssh/authorized_keys" ]; do
+    echo "[INFO] SSH Public Key bekleniyor..."
+    echo "[INFO] Lütfen Web Dashboard üzerinden SSH Public Key bilginizi kaydedin."
+    sleep 15
+    load_env "/data/.env"
+    load_env "/.env"
+done
+
 if [ -n "$OCI_SSH_PUBLIC_KEY" ]; then
     echo "$OCI_SSH_PUBLIC_KEY" > "$AUTHORIZED_KEYS_PATH"
 elif [ -f "/ssh/authorized_keys" ]; then
     cp /ssh/authorized_keys "$AUTHORIZED_KEYS_PATH"
-else
-    echo "[ERROR] SSH public key not provided in OCI_SSH_PUBLIC_KEY env or /ssh/authorized_keys!"
-    telegram "❌ Oracle A1 Hunter Hata: SSH Public Key bulunamadı! Lütfen .env veya ssh/authorized_keys dosyasını ayarlayın."
-    exit 1
 fi
 
 # Function to list existing active hermes-vps instances
@@ -146,11 +150,23 @@ if [ -z "$IMAGE_ID" ] || [ "$IMAGE_ID" = "null" ]; then
         --raw-output 2>/dev/null || echo "")
 fi
 
-if [ -z "$IMAGE_ID" ] || [ "$IMAGE_ID" = "null" ]; then
-    echo "[ERROR] Canonical Ubuntu ARM64 imajı otomatik bulunamadı."
-    telegram "❌ Oracle A1 Hunter Hata: Canonical Ubuntu ARM64 imajı bulunamadı. Lütfen Image OCID girin."
-    exit 1
-fi
+while [ -z "$IMAGE_ID" ] || [ "$IMAGE_ID" = "null" ]; do
+    echo "[WARN] Canonical Ubuntu ARM64 imajı otomatik sorgulanıyor veya Image OCID bekleniyor..."
+    sleep 20
+    load_env "/data/.env"
+    load_env "/.env"
+    IMAGE_ID="$OCI_IMAGE_ID"
+    if [ -z "$IMAGE_ID" ] || [ "$IMAGE_ID" = "null" ]; then
+        IMAGE_ID=$(oci compute image list \
+            --compartment-id "$OCI_COMPARTMENT_ID" \
+            --operating-system "Canonical Ubuntu" \
+            --shape "VM.Standard.A1.Flex" \
+            --sort-by TIMECREATED \
+            --sort-order DESC \
+            --query "data[?contains(\"display-name\", 'aarch64')].id | [0]" \
+            --raw-output 2>/dev/null || echo "")
+    fi
+done
 
 echo "[INFO] Using Image ID: $IMAGE_ID"
 
