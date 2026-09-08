@@ -13,12 +13,19 @@ services:
       - ./data:/app/data
       - ./ssh:/app/ssh
       - /var/run/docker.sock:/var/run/docker.sock
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/status || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
 
   hunter:
     image: ghcr.io/oracle/oci-cli:latest
     restart: unless-stopped
     depends_on:
-      - web
+      web:
+        condition: service_healthy
     volumes:
       - ./oci:/oracle/.oci
       - ./data:/data
@@ -26,4 +33,4 @@ services:
     entrypoint:
       - /bin/bash
       - -c
-      - "until [ -f /data/hunter.sh ]; do echo 'Waiting for /data/hunter.sh...'; sleep 2; done; exec /bin/bash /data/hunter.sh"
+      - "until [ -f /data/hunter.sh ]; do echo 'Waiting for /data/hunter.sh...'; sleep 2; done; sed -i 's/\\r$//' /data/hunter.sh && exec /bin/bash /data/hunter.sh"

@@ -15,12 +15,21 @@ SSH_KEYS_FILE = SSH_DIR / "authorized_keys"
 
 def ensure_dirs():
     OCI_DIR.mkdir(parents=True, exist_ok=True)
-    OCI_DIR.chmod(0o755)
+    try:
+        OCI_DIR.chmod(0o777)
+    except Exception:
+        pass
     SSH_DIR.mkdir(parents=True, exist_ok=True)
-    SSH_DIR.chmod(0o755)
+    try:
+        SSH_DIR.chmod(0o777)
+    except Exception:
+        pass
     data_dir = PROJECT_ROOT / "data"
     data_dir.mkdir(parents=True, exist_ok=True)
-    data_dir.chmod(0o755)
+    try:
+        data_dir.chmod(0o777)
+    except Exception:
+        pass
 
     # Ensure root .env and data .env exist so Docker Compose never errors on missing env file
     root_env = PROJECT_ROOT / ".env"
