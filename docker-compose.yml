@@ -14,8 +14,8 @@ services:
       - ./ssh:/app/ssh
       - /var/run/docker.sock:/var/run/docker.sock
     healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8000/api/status || exit 1"]
-      interval: 10s
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/status')"]
+      interval: 15s
       timeout: 5s
       retries: 5
       start_period: 10s
@@ -30,6 +30,12 @@ services:
       - ./oci:/oracle/.oci
       - ./data:/data
       - ./ssh:/ssh
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /data/hunter.sh || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     entrypoint:
       - /bin/bash
       - -c
