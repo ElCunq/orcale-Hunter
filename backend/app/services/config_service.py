@@ -137,12 +137,6 @@ def write_private_key(key_content: str):
         # Convert literal '\n' or '\\n' text strings into real line breaks
         key_content = key_content.replace("\\n", "\n")
 
-        # Automatically strip trailing variable names/junk text after -----END ... PRIVATE KEY-----
-        end_match = re.search(r'(-----END [A-Z ]+-----)', key_content)
-        if end_match:
-            end_pos = end_match.end()
-            key_content = key_content[:end_pos]
-
         # Ensure proper PEM header/footer formatting if missing line breaks
         if "-----BEGIN" in key_content and "\n" not in key_content:
             key_content = re.sub(r'(-----BEGIN [A-Z ]+-----)\s*', r'\1\n', key_content)
