@@ -62,31 +62,29 @@ telegram() {
     fi
 }
 
-# 3. Verify OCI Config and essential fields exist
-if [ ! -f "/oracle/.oci/config" ] || [ ! -f "/oracle/.oci/private-key.pem" ]; then
+# 3. Verify OCI Config and essential fields exist (Wait loop instead of container exit)
+while [ ! -f "/oracle/.oci/config" ] || [ ! -f "/oracle/.oci/private-key.pem" ]; do
     echo "[INFO] OCI konfigürasyon dosyaları (/oracle/.oci/config veya private-key.pem) henüz bulunamadı."
     echo "[INFO] Lütfen Web Dashboard üzerinden OCI API ve Telegram bilgilerinizi kaydedin."
-    sleep 30
-    exit 0
-fi
+    sleep 15
+    load_env "/data/.env"
+    load_env "/.env"
+done
 
 if [ -z "$OCI_COMPARTMENT_ID" ]; then
     OCI_COMPARTMENT_ID=$(grep -E '^tenancy=' /oracle/.oci/config | head -n1 | cut -d'=' -f2 | tr -d ' "\r' || true)
 fi
 
-if [ -z "$OCI_COMPARTMENT_ID" ] || [ "$OCI_COMPARTMENT_ID" = "null" ]; then
-    echo "[INFO] OCI_COMPARTMENT_ID (Tenancy OCID) henüz tanımlanmamış."
-    echo "[INFO] Lütfen Web Dashboard üzerinden Tenancy / Compartment OCID bilginizi kaydedin."
-    sleep 30
-    exit 0
-fi
-
-if [ -z "$OCI_SUBNET_ID" ] || [ "$OCI_SUBNET_ID" = "null" ]; then
-    echo "[INFO] OCI_SUBNET_ID henüz tanımlanmamış."
-    echo "[INFO] Lütfen Web Dashboard üzerinden Subnet OCID bilginizi kaydedin."
-    sleep 30
-    exit 0
-fi
+while [ -z "$OCI_COMPARTMENT_ID" ] || [ "$OCI_COMPARTMENT_ID" = "null" ] || [ -z "$OCI_SUBNET_ID" ] || [ "$OCI_SUBNET_ID" = "null" ]; do
+    echo "[INFO] OCI API bilgileri (Tenancy / Subnet OCID) bekleniyor..."
+    echo "[INFO] Lütfen Web Dashboard üzerinden OCI bilgilerinizi kaydedin."
+    sleep 15
+    load_env "/data/.env"
+    load_env "/.env"
+    if [ -z "$OCI_COMPARTMENT_ID" ]; then
+        OCI_COMPARTMENT_ID=$(grep -E '^tenancy=' /oracle/.oci/config | head -n1 | cut -d'=' -f2 | tr -d ' "\r' || true)
+    fi
+done
 
 echo "[INFO] Compartment ID: $OCI_COMPARTMENT_ID"
 echo "[INFO] Hunter Mode: $HUNTER_MODE. Target Count: $TARGET_COUNT. Target Tiers: ${TIER_SPECS[*]} (Boot Disk: ${BOOT_VOLUME_GB}GB)"
