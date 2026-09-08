@@ -1,10 +1,13 @@
 # Stage 1: Build React Frontend UI
-FROM pnpm/pnpm:9-node20-alpine AS frontend-builder
+FROM node:20-alpine AS frontend-builder
 WORKDIR /frontend
 COPY frontend/package.json frontend/pnpm-lock.yaml* ./
-RUN --mount=type=cache,target=/root/.local/share/pnpm/store \
-    pnpm config set fetch-retries 5 && pnpm config set fetch-retry-maxtimeout 120000 \
-    && (pnpm install --frozen-lockfile || (pnpm config set registry https://registry.npmmirror.com && pnpm install --frozen-lockfile))
+RUN --mount=type=cache,target=/root/.npm \
+    --mount=type=cache,target=/root/.local/share/pnpm/store \
+    npm config set registry https://registry.npmmirror.com \
+    && npm install -g pnpm@9 \
+    && pnpm config set registry https://registry.npmmirror.com \
+    && pnpm install --frozen-lockfile
 COPY frontend/ ./
 RUN pnpm build
 
