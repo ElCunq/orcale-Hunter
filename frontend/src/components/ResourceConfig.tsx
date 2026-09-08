@@ -5,9 +5,10 @@ import { ConfigData } from '../api/client';
 interface ResourceConfigProps {
   config: ConfigData;
   onChange: (key: keyof ConfigData, value: string) => void;
+  onMultiChange?: (changes: Partial<ConfigData>) => void;
 }
 
-export const ResourceConfig: React.FC<ResourceConfigProps> = ({ config, onChange }) => {
+export const ResourceConfig: React.FC<ResourceConfigProps> = ({ config, onChange, onMultiChange }) => {
   return (
     <div className="space-y-6">
       <div className="border-b border-zinc-800 pb-3">
@@ -29,10 +30,16 @@ export const ResourceConfig: React.FC<ResourceConfigProps> = ({ config, onChange
             value={config.hunter_mode || 'QUAD_1C6G'}
             onChange={(e) => {
               const mode = e.target.value;
-              onChange('hunter_mode', mode);
-              if (mode === 'QUAD_1C6G') {
-                onChange('oci_ocpus', '1');
-                onChange('oci_memory_gb', '6');
+              if (onMultiChange) {
+                if (mode === 'QUAD_1C6G') {
+                  onMultiChange({ hunter_mode: 'QUAD_1C6G', oci_ocpus: '1', oci_memory_gb: '6' });
+                } else if (mode === 'GRADUAL') {
+                  onMultiChange({ hunter_mode: 'GRADUAL', oci_ocpus: '4', oci_memory_gb: '24' });
+                } else {
+                  onMultiChange({ hunter_mode: mode });
+                }
+              } else {
+                onChange('hunter_mode', mode);
               }
             }}
             className="w-full shadcn-input font-mono cursor-pointer"

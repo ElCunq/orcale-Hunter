@@ -67,8 +67,12 @@ export const App: React.FC = () => {
   }, []);
 
   const handleConfigChange = (key: keyof ConfigData, value: string) => {
-    if (!config) return;
-    setConfig({ ...config, [key]: value });
+    setConfig((prev) => (prev ? { ...prev, [key]: value } : null));
+    setHasUnsavedChanges(true);
+  };
+
+  const handleMultiConfigChange = (changes: Partial<ConfigData>) => {
+    setConfig((prev) => (prev ? { ...prev, ...changes } : null));
     setHasUnsavedChanges(true);
   };
 
@@ -182,7 +186,7 @@ export const App: React.FC = () => {
           )}
 
           {config && activeTab === 'resource' && (
-            <ResourceConfig config={config} onChange={handleConfigChange} />
+            <ResourceConfig config={config} onChange={handleConfigChange} onMultiChange={handleMultiConfigChange} />
           )}
 
           {activeTab === 'logs' && (
