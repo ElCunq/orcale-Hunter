@@ -101,6 +101,14 @@ def write_env_file(data: Dict[str, str]):
         f.write("\n".join(lines) + "\n")
     ENV_FILE.chmod(0o644)
 
+    if LEGACY_ENV_FILE.exists() and not LEGACY_ENV_FILE.is_dir():
+        try:
+            with open(LEGACY_ENV_FILE, "w", encoding="utf-8") as f:
+                f.write("\n".join(lines) + "\n")
+            LEGACY_ENV_FILE.chmod(0o644)
+        except Exception:
+            pass
+
 def read_oci_config() -> Dict[str, str]:
     if not OCI_CONFIG_FILE.exists():
         return {}
