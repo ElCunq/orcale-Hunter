@@ -349,14 +349,17 @@ while true; do
 
             echo "[INFO] Trying AD: $AD [Target: $TARGET_DISPLAY_NAME | Spec: ${TARGET_OCPU} OCPU / ${TARGET_RAM} GB RAM / ${BOOT_VOLUME_GB}GB Disk]..."
 
-            # Attempt to launch instance
+            # Sanitize subnet ID
+            CLEAN_SUBNET_ID=$(echo "$OCI_SUBNET_ID" | tr -d ' "\r\n' || true)
+
+            # Attempt to launch instance with clean shape-config
             LAUNCH_OUTPUT=$(oci compute instance launch \
                 --compartment-id "$OCI_COMPARTMENT_ID" \
                 --availability-domain "$AD" \
-                --subnet-id "$OCI_SUBNET_ID" \
+                --subnet-id "$CLEAN_SUBNET_ID" \
                 --image-id "$IMAGE_ID" \
                 --shape "VM.Standard.A1.Flex" \
-                --shape-config "{\"ocpus\":${TARGET_OCPU},\"memoryInGBs\":${TARGET_RAM}}" \
+                --shape-config "ocpus=${TARGET_OCPU},memoryInGBs=${TARGET_RAM}" \
                 --boot-volume-size-in-gbs "$BOOT_VOLUME_GB" \
                 --assign-public-ip true \
                 --ssh-authorized-keys-file "$AUTHORIZED_KEYS_PATH" \
@@ -454,6 +457,15 @@ Instance OCID: ${INSTANCE_OCID}"
                 echo "[ERROR] OCI API Kimlik Doğrulama Hatası (HTTP 401 NotAuthenticated)!"
                 echo "[ERROR] Lütfen Web Dashboard üzerinden OCI User OCID, Fingerprint, Tenancy ve Private Key (.pem) bilgilerinizi kontrol edip yeniden kaydedin."
                 telegram "❌ Oracle A1 Hunter Hata: OCI API Kimlik Doğrulama Hatası (HTTP 401 NotAuthenticated)! Lütfen Web UI üzerinden OCI User OCID, Fingerprint, Tenancy ve Private Key (.pem) bilgilerinizi kontrol edip kaydedin."
+                sleep 60
+                continue 2
+            fi
+
+            # Check for CannotParseRequest / 400 (Invalid Subnet OCID or parameter syntax)
+            if echo "$LAUNCH_OUTPUT" | grep -q -iE "CannotParseRequest|Incorrectly formatted request"; then
+                echo "[ERROR] OCI Parametre/Subnet Geçersizlik Hatası (HTTP 400 CannotParseRequest)!"
+                echo "[ERROR] Lütfen Web Dashboard üzerinden yeni Oracle Cloud hesabınıza ait Subnet OCID bilginizi kontrol edip yeniden kaydedin."
+                telegram "⚠️ Oracle A1 Hunter Uyarısı: Subnet OCID geçersiz veya eski hesaba ait (HTTP 400)! Lütfen Web UI üzerinden yeni hesabınızın Subnet OCID bilginizi kaydedin."
                 sleep 60
                 continue 2
             fi
