@@ -6,7 +6,9 @@ WORKDIR /frontend
 COPY frontend/package.json frontend/pnpm-lock.yaml* ./
 RUN --mount=type=cache,target=/root/.npm \
     --mount=type=cache,target=/root/.local/share/pnpm/store \
-    npm install -g pnpm@9 && pnpm install --frozen-lockfile
+    (corepack enable && corepack prepare pnpm@9.15.4 --activate || npm install -g pnpm@9 --fetch-retries=5 --fetch-retry-maxtimeout=120000) \
+    && pnpm config set fetch-retries 5 \
+    && pnpm install --frozen-lockfile
 COPY frontend/ ./
 RUN pnpm build
 
