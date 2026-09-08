@@ -116,20 +116,20 @@ get_existing_instances() {
 # Check if target instances already exist
 EXISTING_JSON=$(get_existing_instances)
 if [ "$HUNTER_MODE" = "QUAD_1C6G" ]; then
-    ACTIVE_QUAD_COUNT=$(echo "$EXISTING_JSON" | grep -c "hermes-vps" || true)
+    ACTIVE_QUAD_COUNT=$(echo "$EXISTING_JSON" | grep -c -iE "hermes" || true)
     if [ "$ACTIVE_QUAD_COUNT" -ge 4 ]; then
-        echo "[INFO] All 4 'hermes-vps' instances (1C/6G) already exist in compartment."
+        echo "[INFO] All 4 'hermes' instances (1C/6G) already exist in compartment."
         telegram "ℹ️ Oracle A1 Hunter: Hedeflenen 4 adet 1C/6GB VPS sunucusu zaten mevcut ve aktif! Hunter tamamlandı."
         touch "$SUCCESS_MARKER"
         exit 0
     else
-        echo "[INFO] Currently active hermes-vps instances: $ACTIVE_QUAD_COUNT / 4"
+        echo "[INFO] Currently active hermes instances: $ACTIVE_QUAD_COUNT / 4"
     fi
 else
-    EXISTING_COUNT=$(echo "$EXISTING_JSON" | grep -c "hermes-vps" || true)
+    EXISTING_COUNT=$(echo "$EXISTING_JSON" | grep -c -iE "hermes" || true)
     if [ "$EXISTING_COUNT" -gt 0 ]; then
-        echo "[INFO] Active 'hermes-vps' instance already exists in compartment."
-        telegram "ℹ️ Oracle A1 Hunter: 'hermes-vps' isimli aktif bir instance zaten mevcut! Hunter tamamlandı."
+        echo "[INFO] Active 'hermes' instance already exists in compartment."
+        telegram "ℹ️ Oracle A1 Hunter: Aktif bir VPS sunucusu zaten mevcut! Hunter tamamlandı."
         touch "$SUCCESS_MARKER"
         exit 0
     fi
@@ -268,19 +268,21 @@ AUTH_NOTIFIED=false
 
 # Helper to determine next instance display name to create
 get_target_instance_name() {
-    if [ "$HUNTER_MODE" != "QUAD_1C6G" ]; then
-        echo "hermes-vps"
-        return
+    if [ "$HUNTER_MODE" = "QUAD_1C6G" ]; then
+        local active_json
+        active_json=$(get_existing_instances)
+        for idx in 1 2 3 4; do
+            if ! echo "$active_json" | grep -q "hermes-vps-$idx"; then
+                echo "hermes-vps-$idx"
+                return
+            fi
+        done
+        echo "hermes-vps-4"
+    else
+        # Single VPS mode (EXACT / GRADUAL) - use fresh unique name to prevent terminated instance collisions
+        local ts_suffix=$(date +%m%d%H%M 2>/dev/null || echo "max")
+        echo "hermes-vps-$ts_suffix"
     fi
-    local active_json
-    active_json=$(get_existing_instances)
-    for idx in 1 2 3 4; do
-        if ! echo "$active_json" | grep -q "hermes-vps-$idx"; then
-            echo "hermes-vps-$idx"
-            return
-        fi
-    done
-    echo "hermes-vps-4"
 }
 
 # 9. Main Hunter Loop
